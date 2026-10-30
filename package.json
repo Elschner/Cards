@@ -1,0 +1,30 @@
+{
+  "name": "cardops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal ops tool: card intake, chaos-storage inventory, trend pricing and marketplace listing (Cardmarket first).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "test": "node --test --experimental-strip-types tests/*.test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prisma": "^6.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

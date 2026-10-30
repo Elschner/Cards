@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite for the MVP. Switch provider to "postgresql" when you move to a hosted DB.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A specific printing, cached from Scryfall.
+model Card {
+  scryfallId      String    @id
+  name            String
+  setCode         String
+  setName         String
+  collectorNumber String
+  lang            String
+  rarity          String
+  cardmarketId    Int?      // Cardmarket idProduct (from Scryfall) — the key for listing
+  imageUrl        String?
+  priceEur        Float?    // Scryfall EUR price (sourced from Cardmarket trend)
+  priceEurFoil    Float?
+  pricesUpdatedAt DateTime?
+  items           InventoryItem[]
+}
+
+// Chaos storage: boxes with numbered slots. A card goes into any free slot.
+model Box {
+  id       Int             @id @default(autoincrement())
+  code     String          @unique // e.g. "B001"
+  capacity Int
+  items    InventoryItem[]
+}
+
+// One row = one physical copy. Keeps location tracking exact.
+model InventoryItem {
+  id         Int       @id @default(autoincrement())
+  card       Card      @relation(fields: [scryfallId], references: [scryfallId])
+  scryfallId String
+  condition  String    // MT, NM, EX, GD, LP, PL, PO (Cardmarket scale)
+  foil       Boolean   @default(false)
+  language   String    @default("en") // Scryfall lang code
+  status     String    @default("IN_STOCK") // IN_STOCK, LISTED, SOLD, REMOVED
+  box        Box?      @relation(fields: [boxId], references: [id])
+  boxId      Int?
+  slot       Int?
+  askPrice   Float?    // EUR
+  costBasis  Float?    // EUR, what you paid
+  photoPath  String?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  listings   Listing[]
+
+  @@unique([boxId, slot])
+  @@index([status])
+}
+
+model Listing {
+  id         Int           @id @default(autoincrement())
+  item       InventoryItem @relation(fields: [itemId], references: [id])
+  itemId     Int
+  channel    String        // CARDMARKET, TRADERA, EBAY
+  method     String        // API, CSV
+  externalId String?       // e.g. Cardmarket idArticle
+  price      Float
+  status     String        // PENDING, ACTIVE, FAILED, ENDED, SOLD
+  error      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([channel, status])
+}
