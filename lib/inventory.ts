@@ -2,7 +2,7 @@
 import { prisma } from "./db";
 import { findFreeSlot, locationLabel } from "./core/chaos";
 import { computeAskPrice, type Condition } from "./core/pricing";
-import { byId, upsertCard } from "./scryfall";
+import { byId, byIds, upsertCard } from "./scryfall";
 
 export const BOX_CAPACITY = Number(process.env.BOX_CAPACITY || 500);
 
@@ -62,14 +62,8 @@ export async function repriceAll(itemIds?: number[]) {
     where: { status: { in: OCCUPYING }, ...(itemIds ? { id: { in: itemIds } } : {}) },
     include: { card: true },
   });
-  const refreshed = new Set<string>();
-  for (const it of items) {
-    if (!refreshed.has(it.scryfallId)) {
-      const sc = await byId(it.scryfallId);
-      if (sc) await upsertCard(sc);
-      refreshed.add(it.scryfallId);
-    }
-  }
+  const unique = [...new Set(items.map((it) => it.scryfallId))];
+  for (const sc of await byIds(unique)) await upsertCard(sc);
   let changed = 0;
   for (const it of items) {
     const card = await prisma.card.findUnique({ where: { scryfallId: it.scryfallId } });

@@ -2,9 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// SQLite for the MVP. Switch provider to "postgresql" when you move to a hosted DB.
+// Postgres (Neon free tier works). Use the same database for local dev and hosting,
+// or a separate Neon branch for local experiments.
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

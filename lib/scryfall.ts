@@ -5,15 +5,18 @@ import { prisma } from "./db";
 const BASE = "https://api.scryfall.com";
 let lastCall = 0;
 
-async function sf<T>(path: string): Promise<T | null> {
+async function sf<T>(path: string, body?: unknown): Promise<T | null> {
   const wait = lastCall + 110 - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCall = Date.now();
   const res = await fetch(BASE + path, {
+    method: body ? "POST" : "GET",
     headers: {
       "User-Agent": process.env.SCRYFALL_USER_AGENT || "CardOps/0.1",
       Accept: "application/json;q=0.9,*/*;q=0.8",
+      ...(body ? { "Content-Type": "application/json" } : {}),
     },
+    body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
   if (res.status === 404) return null;
@@ -69,6 +72,18 @@ export async function autocomplete(q: string): Promise<string[]> {
 
 export async function byId(id: string) {
   return sf<ScryfallCard>(`/cards/${id}`);
+}
+
+/** Fetch many cards by Scryfall id — 75 per request (Scryfall's collection limit). */
+export async function byIds(ids: string[]): Promise<ScryfallCard[]> {
+  const out: ScryfallCard[] = [];
+  for (let i = 0; i < ids.length; i += 75) {
+    const res = await sf<{ data: ScryfallCard[] }>("/cards/collection", {
+      identifiers: ids.slice(i, i + 75).map((id) => ({ id })),
+    });
+    out.push(...(res?.data ?? []));
+  }
+  return out;
 }
 
 /**

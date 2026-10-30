@@ -1,0 +1,28 @@
+# Render Blueprint: Render → New → Blueprint → pick this repo.
+# Free web service (sleeps after 15 min idle, ~1 min to wake). Database lives on Neon.
+services:
+  - type: web
+    name: cardops
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install --include=dev && npx prisma db push --skip-generate && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL # Neon connection string (…?sslmode=require)
+        sync: false
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD # you choose; the browser asks for it
+        sync: false
+      - key: SCRYFALL_USER_AGENT # e.g. CardOps/0.1 (your@email)
+        sync: false
+      - key: ANTHROPIC_API_KEY # optional: photo recognition
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5-5
+      - key: CARDMARKET_DRY_RUN
+        value: "true"

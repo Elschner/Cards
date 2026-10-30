@@ -30,6 +30,22 @@ interface Row {
 }
 
 const LANGS = ["en", "de", "fr", "it", "es", "pt", "ja", "ko", "ru", "zhs", "zht"];
+
+/** Shrink phone photos (often 3–8 MB) to ~1600px JPEG before upload: faster and cheaper to read. */
+async function downscale(file: File, maxSide = 1600): Promise<Blob> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.88));
+    return blob ?? file;
+  } catch {
+    return file;
+  }
+}
 const img = (p?: Printing) => p?.image_uris?.small ?? p?.card_faces?.[0]?.image_uris?.small;
 
 const blank = (key: string, previewUrl: string | null): Row => ({
@@ -56,7 +72,7 @@ export default function Intake() {
       const key = newRows[i].key;
       try {
         const fd = new FormData();
-        fd.append("image", list[i]);
+        fd.append("image", await downscale(list[i]), "card.jpg");
         const res = await fetch("/api/recognize", { method: "POST", body: fd });
         const j = await res.json();
         const printings: Printing[] = j.alternatives?.length ? j.alternatives : j.match ? [j.match] : [];

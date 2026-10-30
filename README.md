@@ -3,15 +3,46 @@
 Upload card photos → recognise the exact printing via Scryfall → store each copy in a
 chaos-storage slot → price from Cardmarket trend → list on Cardmarket.
 
-Built to prove PMF cheaply: one Next.js app, one SQLite file, no infrastructure.
+Built to prove PMF cheaply: one Next.js app + one Postgres database, both on free tiers.
 
-## Quick start
+## Put it online (free, ~15 minutes)
+
+Hosting: **Render** (free web service) + **Neon** (free Postgres). Vercel's free Hobby
+plan is not an option — it's restricted to non-commercial use.
+
+**1. Database — Neon**
+1. Sign up at neon.tech (no credit card) → create a project, region **Europe (Frankfurt)**.
+2. Click **Connect** → copy the connection string. It looks like
+   `postgresql://…@ep-….eu-central-1.aws.neon.tech/neondb?sslmode=require`.
+
+**2. App — Render**
+1. Sign up at render.com with your GitHub account.
+2. **New → Blueprint** → select the `Elschner/Cards` repo. Render reads `render.yaml`.
+3. Fill in the values it asks for:
+   - `DATABASE_URL` — the Neon string from step 1
+   - `APP_PASSWORD` — a password of your choice (plain letters/numbers/symbols, no æøå)
+   - `SCRYFALL_USER_AGENT` — e.g. `CardOps/0.1 (you@example.com)`
+   - `ANTHROPIC_API_KEY` — optional, from console.anthropic.com (enables photo recognition)
+4. **Apply**. The first build takes a few minutes and creates the database tables.
+5. Open the `https://cardops-xxxx.onrender.com` URL → log in with `admin` + your password.
+   Works on your phone too (bookmark it to the home screen).
+
+Every push to `main` redeploys automatically.
+
+**Free-tier trade-offs**
+- The app sleeps after 15 min without use; the first visit after that takes ~1 minute.
+  Render's paid Starter instance removes this if it gets annoying.
+- Neon free: 1 GB database — hundreds of thousands of inventory rows.
+- Card photos are not stored when hosted (no persistent disk on free tier). Recognition
+  still works; durable photo storage comes with the grading feature.
+
+## Run locally (optional)
 
 ```bash
-cp .env.example .env        # fill SCRYFALL_USER_AGENT and ANTHROPIC_API_KEY
+cp .env.example .env        # DATABASE_URL (Neon — e.g. a separate "dev" branch), SCRYFALL_USER_AGENT
 npm install
-npx prisma db push          # creates dev.db
-npm run dev                 # http://localhost:3000
+npx prisma db push          # creates tables
+npm run dev                 # http://localhost:3000 (no login if APP_PASSWORD is empty)
 npm test                    # pricing, chaos-slot and Cardmarket signing/CSV tests
 ```
 
@@ -65,10 +96,10 @@ Scope for now is **Cardmarket only**.
 - **Other channels later** (Tradera REST v4, eBay Inventory API): add a file in
   `lib/channels/` mirroring the Cardmarket channel. Requires order sync + cross-channel
   delisting first, so the same copy can't sell twice.
-- **Condition grading**: the uploaded photo is already stored per copy (`photoPath`);
-  add a front/back capture step and a vision-based grading suggestion.
-- **Auth**: add basic auth / SSO before exposing beyond localhost.
-- **Postgres** when you deploy: change `provider` in `prisma/schema.prisma`.
+- **Condition grading**: add object storage for photos (e.g. Cloudflare R2 / Neon object
+  storage), a front/back capture step and a vision-based grading suggestion.
+- **Auth upgrade**: the app uses one shared password today; add per-user logins if more
+  people join.
 
 ## PMF metrics worth tracking from day one
 
