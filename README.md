@@ -15,7 +15,7 @@ git clone https://github.com/Elschner/Cards
 cd Cards
 cp .env.example .env        # Windows: copy .env.example .env
 npm install
-npx prisma db push          # creates the database file dev.db
+npx prisma db push          # creates the database file prisma/dev.db
 ```
 
 Open `.env` in a text editor and set `SCRYFALL_USER_AGENT` (e.g. `CardOps/0.1 (you@example.com)`).
@@ -31,7 +31,7 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
 
 - **Phone camera on the same Wi-Fi:** `npm run dev -- -H 0.0.0.0`, then open
   `http://<your-laptop-IP>:3000` on the phone.
-- **Back up** `dev.db` (inventory) and `uploads/` (photos) now and then.
+- **Back up** `prisma/dev.db` (inventory) and `uploads/` (photos) now and then.
 - **Get updates:** `git pull && npm install && npx prisma db push`.
 - `npm test` runs the pricing, chaos-slot and Cardmarket signing/CSV tests.
 
