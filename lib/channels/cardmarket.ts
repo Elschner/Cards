@@ -39,6 +39,8 @@ export async function exportCsv(itemIds: number[], markListed: boolean) {
       inventoryIds: g.map((x) => x.it.id).join(" "),
     };
   });
+  // Sort by expansion: Cardmarket's bulk listing works one expansion at a time.
+  csvRows.sort((a, b) => a.setName.localeCompare(b.setName) || a.name.localeCompare(b.name));
   if (markListed) {
     for (const r of rows) {
       await prisma.listing.create({ data: { itemId: r.it.id, channel: "CARDMARKET", method: "CSV", price: r.price, status: "ACTIVE" } });
