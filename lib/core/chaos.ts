@@ -35,6 +35,30 @@ export function findFreeSlot(boxes: BoxOccupancy[], newBoxCapacity: number): Slo
   return { boxId: null, boxCode: boxCode(sorted.length + 1), slot: 1 };
 }
 
+/**
+ * Bulk version for imports: N free slots in order (gaps first, then new boxes).
+ * New boxes come back with boxId null; callers create them by boxCode.
+ */
+export function findFreeSlots(boxes: BoxOccupancy[], newBoxCapacity: number, count: number): SlotAssignment[] {
+  const sorted = [...boxes].sort((a, b) => a.code.localeCompare(b.code));
+  const out: SlotAssignment[] = [];
+  for (const box of sorted) {
+    const taken = new Set(box.occupiedSlots);
+    for (let s = 1; s <= box.capacity && out.length < count; s++) {
+      if (!taken.has(s)) out.push({ boxId: box.boxId, boxCode: box.code, slot: s });
+    }
+    if (out.length >= count) return out;
+  }
+  let n = sorted.length;
+  while (out.length < count) {
+    n++;
+    for (let s = 1; s <= newBoxCapacity && out.length < count; s++) {
+      out.push({ boxId: null, boxCode: boxCode(n), slot: s });
+    }
+  }
+  return out;
+}
+
 /** Sort items into a walking order for picking orders: box, then slot. */
 export function pickOrder<T extends { boxCode: string | null; slot: number | null }>(items: T[]): T[] {
   return [...items].sort((a, b) => {

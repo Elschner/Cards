@@ -37,6 +37,9 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
 
 ## Daily workflow
 
+0. **Import (ManaBox)** — fastest for big stacks: scan in the free ManaBox app, set
+   condition/language there, export CSV, choose it under *Import*. Every copy gets a slot
+   and a price; the placement list follows scan order — print it and file the stack.
 1. **Intake** — drop photos (or use phone camera). Claude vision reads name, set code,
    collector number and language from the card; Scryfall resolves the exact printing.
    Correct the printing/condition/language/foil if needed → *Add to inventory*.
