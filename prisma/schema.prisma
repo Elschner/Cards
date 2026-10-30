@@ -2,10 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Postgres (Neon free tier works). Use the same database for local dev and hosting,
-// or a separate Neon branch for local experiments.
+// SQLite: a single local file (dev.db), zero setup. To host online later,
+// change provider to "postgresql" and point DATABASE_URL at Neon (see README).
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 

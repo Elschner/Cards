@@ -3,50 +3,37 @@
 Upload card photos → recognise the exact printing via Scryfall → store each copy in a
 chaos-storage slot → price from Cardmarket trend → list on Cardmarket.
 
-Built to prove PMF cheaply: one Next.js app + one Postgres database, both on free tiers.
+Built to prove PMF cheaply: one Next.js app and one local database file. Runs on your
+laptop; can be put online later (see bottom).
 
-## Put it online (free, ~15 minutes)
+## Run on your computer
 
-Hosting: **Render** (free web service) + **Neon** (free Postgres). Vercel's free Hobby
-plan is not an option — it's restricted to non-commercial use.
-
-**1. Database — Neon**
-1. Sign up at neon.tech (no credit card) → create a project, region **Europe (Frankfurt)**.
-2. Click **Connect** → copy the connection string. It looks like
-   `postgresql://…@ep-….eu-central-1.aws.neon.tech/neondb?sslmode=require`.
-
-**2. App — Render**
-1. Sign up at render.com with your GitHub account.
-2. **New → Blueprint** → select the `Elschner/Cards` repo. Render reads `render.yaml`.
-3. Fill in the values it asks for:
-   - `DATABASE_URL` — the Neon string from step 1
-   - `APP_PASSWORD` — a password of your choice (plain letters/numbers/symbols, no æøå)
-   - `SCRYFALL_USER_AGENT` — e.g. `CardOps/0.1 (you@example.com)`
-   - `ANTHROPIC_API_KEY` — optional, from console.anthropic.com (enables photo recognition)
-4. **Apply**. The first build takes a few minutes and creates the database tables.
-5. Open the `https://cardops-xxxx.onrender.com` URL → log in with `admin` + your password.
-   Works on your phone too (bookmark it to the home screen).
-
-Every push to `main` redeploys automatically.
-
-**Free-tier trade-offs**
-- The app sleeps after 15 min without use; the first visit after that takes ~1 minute.
-  Render's paid Starter instance removes this if it gets annoying.
-- Neon free: 1 GB database — hundreds of thousands of inventory rows.
-- Card photos are not stored when hosted (no persistent disk on free tier). Recognition
-  still works; durable photo storage comes with the grading feature.
-
-## Run locally (optional)
+One-time setup (needs [Node.js 22 LTS](https://nodejs.org) and Git):
 
 ```bash
-cp .env.example .env        # DATABASE_URL (Neon — e.g. a separate "dev" branch), SCRYFALL_USER_AGENT
+git clone https://github.com/Elschner/Cards
+cd Cards
+cp .env.example .env        # Windows: copy .env.example .env
 npm install
-npx prisma db push          # creates tables
-npm run dev                 # http://localhost:3000 (no login if APP_PASSWORD is empty)
-npm test                    # pricing, chaos-slot and Cardmarket signing/CSV tests
+npx prisma db push          # creates the database file dev.db
 ```
 
-Requires Node 22.6+.
+Open `.env` in a text editor and set `SCRYFALL_USER_AGENT` (e.g. `CardOps/0.1 (you@example.com)`).
+Optional: `ANTHROPIC_API_KEY` from console.anthropic.com for photo recognition — without
+it you type the card name and pick the printing.
+
+Every time:
+
+```bash
+cd Cards
+npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
+```
+
+- **Phone camera on the same Wi-Fi:** `npm run dev -- -H 0.0.0.0`, then open
+  `http://<your-laptop-IP>:3000` on the phone.
+- **Back up** `dev.db` (inventory) and `uploads/` (photos) now and then.
+- **Get updates:** `git pull && npm install && npx prisma db push`.
+- `npm test` runs the pricing, chaos-slot and Cardmarket signing/CSV tests.
 
 ## Daily workflow
 
@@ -106,3 +93,20 @@ Scope for now is **Cardmarket only**.
 Sell-through % at 30/60 days, median days-to-sale, gross margin per copy
 (ask − cost − fees − shipping), and minutes of labour per card (intake + pick + ship).
 All but labour are derivable from the DB.
+
+## Later: put it online (free)
+
+When you want it in the browser from anywhere: **Render** (free web service) + **Neon**
+(free Postgres). Vercel's free plan is not an option — it is non-commercial use only.
+
+1. In `prisma/schema.prisma` change `provider = "sqlite"` to `provider = "postgresql"`, commit, push.
+   (Local dev then uses Neon too; existing local data is not migrated automatically.)
+2. **Neon:** sign up at neon.tech → new project (Frankfurt) → **Connect** → copy the
+   connection string (`…?sslmode=require`).
+3. **Render:** sign up with GitHub → **New → Blueprint** → `Elschner/Cards` (reads
+   `render.yaml`). Enter `DATABASE_URL` (Neon), `APP_PASSWORD` (no æøå),
+   `SCRYFALL_USER_AGENT`, optional `ANTHROPIC_API_KEY` → **Apply**.
+4. Open `https://cardops-xxxx.onrender.com`, log in as `admin` + your password.
+
+Trade-offs: the free app sleeps after 15 min idle (~1 min to wake); photos aren't kept
+(no persistent disk) until photo storage is added.

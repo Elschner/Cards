@@ -1,3 +1,4 @@
+# Only for hosting: switch prisma/schema.prisma to postgresql first (see README "Later: put it online").
 # Render Blueprint: Render → New → Blueprint → pick this repo.
 # Free web service (sleeps after 15 min idle, ~1 min to wake). Database lives on Neon.
 services:
