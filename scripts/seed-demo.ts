@@ -41,8 +41,8 @@ async function main() {
   const box = await prisma.box.create({ data: { code: "B001", capacity: 500 } });
 
   const lots = [
-    { name: "Samling fra DBA, Peter", totalCost: 120, purchasedAt: new Date("2026-10-12"), cards: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12] },
-    { name: "Bulk-kasse fra spilaften", totalCost: 35, purchasedAt: new Date("2026-10-24"), cards: [1, 8, 9, 11, 12, 13, 4, 5] },
+    { name: "Collection from DBA, Peter", totalCost: 120, purchasedAt: new Date("2026-10-12"), cards: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 12] },
+    { name: "Bulk box from game night", totalCost: 35, purchasedAt: new Date("2026-10-24"), cards: [1, 8, 9, 11, 12, 13, 4, 5] },
   ];
   let slot = 1;
   for (const [li, l] of lots.entries()) {
