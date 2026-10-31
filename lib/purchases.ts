@@ -69,3 +69,22 @@ export async function deletePurchase(id: number) {
   ]);
   return { unlinked: unlinked.count };
 }
+
+/**
+ * Moves cards into a purchase (or out of any purchase when purchaseId is null) and re-splits
+ * the cost of every purchase involved. Cards leaving all purchases lose their allocated cost.
+ */
+export async function assignToPurchase(itemIds: number[], purchaseId: number | null) {
+  if (purchaseId != null && !(await prisma.purchase.findUnique({ where: { id: purchaseId } }))) {
+    throw new Error("Purchase not found");
+  }
+  const items = await prisma.inventoryItem.findMany({ where: { id: { in: itemIds } }, select: { id: true, purchaseId: true } });
+  const touched = new Set(items.map((i) => i.purchaseId).filter((p): p is number => p != null));
+  await prisma.inventoryItem.updateMany({
+    where: { id: { in: items.map((i) => i.id) } },
+    data: purchaseId == null ? { purchaseId: null, costBasis: null } : { purchaseId },
+  });
+  if (purchaseId != null) touched.add(purchaseId);
+  for (const p of touched) await reallocate(p);
+  return { moved: items.length };
+}

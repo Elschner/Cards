@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { apiConfigured } from "@/lib/channels/cardmarket";
 import { locationLabel } from "@/lib/core/chaos";
 import { ensureSkus } from "@/lib/purchases";
 import InventoryTable, { type InvRow } from "@/components/InventoryTable";
@@ -50,7 +49,6 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       <InventoryTable
         rows={rows}
         lots={lots}
-        apiEnabled={apiConfigured()}
         initialStatus={sp.status ?? "IN_STOCK"}
         initialLot={sp.lot ?? ""}
       />

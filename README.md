@@ -47,6 +47,10 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
   Cardmarket order tells you exactly which copy sold — the same ID works on any future channel.
 - **Sold price:** marking a card sold stores its sale price (the ask price unless you correct
   it with "Correct sale price"), which feeds margin and payback.
+- **Add to purchase:** select cards in Inventory and pick a purchase in *Add to purchase…*;
+  the purchase price is split again over all its cards (or *Remove from purchase*).
+- **Location in PowerTools:** the PowerTools CSV has one row per copy with the location and
+  SKU in the comment (`B001-0042 C-000123`), so every Cardmarket order shows the slot.
 - **Delete:** select cards in Inventory and press Delete to remove test cards or mistakes
   permanently (frees the slot, re-splits the purchase cost). A purchase can be deleted on its
   page; its cards stay in inventory without a cost.
@@ -70,7 +74,6 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
    Bulk listing page, and a **Mark as listed** button. Fill the page with the free
    *Cardmarket Bulk Import* extension (leave Set unmapped), check, put up for sale. Older route:
    - **CSV + mark listed** → upload via Cardmarket's bulk listing (see below), or
-   - **Push to Cardmarket (API)** if you have API credentials.
 3. **Pick list** — when an order arrives, find the card's location, pull it, then
    *Mark sold* in Inventory. The slot is freed and reused by the next intake.
 

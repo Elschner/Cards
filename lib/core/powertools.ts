@@ -2,10 +2,15 @@
 // Header taken from PowerTools' own example file:
 // cardmarketId,quantity,name,set,condition,language,isSigned,price,comment,finishType,buyPrice
 // PowerTools matches on cardmarketId, so all sets can go in one file.
+//
+// One row per physical copy, with its storage location and SKU in the comment
+// ("B001-0042 C-000123"). PowerTools has no location column, but the comment travels to
+// PowerTools and Cardmarket, so every sold article tells you which slot to pick from.
 
 export interface PtCopy {
   id: number;
   sku: string | null;
+  location: string | null; // B001-0042
   cardmarketId: number | null;
   name: string;
   set: string; // Cardmarket expansion name when known
@@ -26,34 +31,23 @@ const cell = (v: string | number) => {
   return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-export interface PtRow { copies: PtCopy[]; key: string }
+export const ptComment = (c: Pick<PtCopy, "location" | "sku" | "id">) =>
+  [c.location, c.sku ?? `#${c.id}`].filter(Boolean).join(" ");
 
-/** Identical copies (product, condition, language, finish, price) become one row. */
-export function groupForPowertools(copies: PtCopy[]): { rows: PtRow[]; missingId: PtCopy[] } {
-  const rows = new Map<string, PtRow>();
-  const missingId: PtCopy[] = [];
-  for (const c of copies) {
-    if (!c.cardmarketId) { missingId.push(c); continue; }
-    const key = `${c.cardmarketId}|${c.condition}|${c.language}|${c.foil}|${c.price.toFixed(2)}`;
-    const r = rows.get(key) ?? { copies: [], key };
-    r.copies.push(c);
-    rows.set(key, r);
-  }
-  const sorted = [...rows.values()].sort((a, b) =>
-    a.copies[0].set.localeCompare(b.copies[0].set) || a.copies[0].name.localeCompare(b.copies[0].name));
-  return { rows: sorted, missingId };
+/** Copies with a Cardmarket ID, sorted by set and name; the rest are returned separately. */
+export function prepareForPowertools(copies: PtCopy[]): { rows: PtCopy[]; missingId: PtCopy[] } {
+  const rows = copies.filter((c) => c.cardmarketId)
+    .sort((a, b) => a.set.localeCompare(b.set) || a.name.localeCompare(b.name) || (a.location ?? "").localeCompare(b.location ?? ""));
+  return { rows, missingId: copies.filter((c) => !c.cardmarketId) };
 }
 
-export function powertoolsCsv(rows: PtRow[]): string {
+export function powertoolsCsv(rows: PtCopy[]): string {
   const head = "cardmarketId,quantity,name,set,condition,language,isSigned,price,comment,finishType,buyPrice";
-  const lines = rows.map(({ copies }) => {
-    const c = copies[0];
-    const costs = copies.map((x) => x.cost).filter((x): x is number => x != null);
-    const buy = costs.length ? (costs.reduce((a, b) => a + b, 0) / costs.length).toFixed(2) : "";
-    return [
-      c.cardmarketId!, copies.length, c.name, c.set, c.condition, LANGUAGE_NAME[c.language] ?? c.language,
-      "false", c.price.toFixed(2), copies.map((x) => x.sku ?? `#${x.id}`).join(" "), c.foil ? "Foil" : "Regular", buy,
-    ].map(cell).join(",");
-  });
+  const lines = rows.map((c) =>
+    [
+      c.cardmarketId!, 1, c.name, c.set, c.condition, LANGUAGE_NAME[c.language] ?? c.language,
+      "false", c.price.toFixed(2), ptComment(c), c.foil ? "Foil" : "Regular", c.cost != null ? c.cost.toFixed(2) : "",
+    ].map(cell).join(","),
+  );
   return [head, ...lines].join("\n") + "\n";
 }

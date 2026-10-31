@@ -6,7 +6,7 @@ import { prisma } from "../db";
 import { locationLabel } from "../core/chaos";
 import { bulkCsv, bulkListingUrl, groupBySet } from "../core/bulklisting";
 import { cardmarketSets } from "../mtgjson";
-import { groupForPowertools, powertoolsCsv } from "../core/powertools";
+import { prepareForPowertools, powertoolsCsv } from "../core/powertools";
 import { cardmarketCsv, chunk, groupForListing, mkmAuthHeader, stockXml, type CsvRow } from "../core/cardmarket";
 
 export function apiConfigured() {
@@ -153,18 +153,18 @@ export async function markListed(itemIds: number[]) {
 export async function powertoolsExport(itemIds?: number[]) {
   const items = await prisma.inventoryItem.findMany({
     where: { status: "IN_STOCK", askPrice: { not: null }, ...(itemIds ? { id: { in: itemIds } } : {}) },
-    include: { card: true },
+    include: { card: true, box: true },
   });
   const mcm = await cardmarketSets();
-  const { rows, missingId } = groupForPowertools(items.map((it) => ({
-    id: it.id, sku: it.sku, cardmarketId: it.card.cardmarketId, name: it.card.name,
+  const { rows, missingId } = prepareForPowertools(items.map((it) => ({
+    id: it.id, sku: it.sku, location: it.box && it.slot ? locationLabel(it.box.code, it.slot) : null,
+    cardmarketId: it.card.cardmarketId, name: it.card.name,
     set: mcm.get(it.card.setCode)?.mcmName ?? it.card.setName,
     condition: it.condition, language: it.language, foil: it.foil, price: it.askPrice!, cost: it.costBasis,
   })));
-  const ids = rows.flatMap((r) => r.copies.map((c) => c.id));
   return {
-    csv: powertoolsCsv(rows), rows: rows.length, copies: ids.length, ids,
-    value: Math.round(rows.reduce((s, r) => s + r.copies.length * r.copies[0].price, 0) * 100) / 100,
+    csv: powertoolsCsv(rows), rows: rows.length, copies: rows.length, ids: rows.map((r) => r.id),
+    value: Math.round(rows.reduce((s, r) => s + r.price, 0) * 100) / 100,
     missing: missingId.map((m) => ({ sku: m.sku, name: m.name, set: m.set })),
   };
 }

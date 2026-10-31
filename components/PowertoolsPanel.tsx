@@ -36,7 +36,7 @@ export default function PowertoolsPanel({ data }: { data: PtExport }) {
     <div className="panel" style={{ borderColor: "var(--ink-3)" }}>
       <h2>All sets at once, through TCG PowerTools</h2>
       <p className="muted" style={{ margin: "6px 0 12px" }}>
-        {cards(data.copies)} worth {eur(data.value)} in one file, {data.rows} rows. PowerTools matches each card by its Cardmarket ID.
+        {cards(data.copies)} worth {eur(data.value)} in one file. PowerTools matches each card by its Cardmarket ID. Each card&apos;s location and SKU go in its comment (e.g. B001-0042 C-000123), so every Cardmarket order shows where to pick it.
       </p>
       <div className="row">
         <button onClick={download} disabled={!data.copies}>Download PowerTools CSV</button>

@@ -13,8 +13,8 @@ export interface InvRow {
 
 const FILTERS = ["IN_STOCK", "LISTED", "SOLD", "ALL"] as const;
 
-export default function InventoryTable({ rows, lots, apiEnabled, initialStatus, initialLot }: {
-  rows: InvRow[]; lots: { id: number; name: string }[]; apiEnabled: boolean; initialStatus: string; initialLot: string;
+export default function InventoryTable({ rows, lots, initialStatus, initialLot }: {
+  rows: InvRow[]; lots: { id: number; name: string }[]; initialStatus: string; initialLot: string;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
@@ -107,13 +107,23 @@ export default function InventoryTable({ rows, lots, apiEnabled, initialStatus, 
         <div className="row">
           <button disabled={busy || !canList} title={listBlock} onClick={() => router.push(`/listing?ids=${ids.join(",")}`)}>List on Cardmarket</button>
           <button disabled={busy || !canList} title={listBlock} className="ghost" onClick={() => exportCsv(false)}>Download CSV only</button>
-          <button disabled={busy || !canList || !apiEnabled} className="ghost"
-            title={apiEnabled ? listBlock : "Needs API access from Cardmarket. See README."}
-            onClick={async () => {
-              const j = await post("/api/cardmarket/push", { ids });
-              if (j) done(`${j.dryRun ? "Test run: " : ""}${j.listed} listed, ${j.failed} failed, ${j.skippedNoProduct} without a Cardmarket product.${j.errors?.length ? " " + j.errors[0] : ""}`);
-            }}>List via API</button>
           <span style={{ flex: 1 }} />
+          <select disabled={busy || !ids.length} value="" aria-label="Add to purchase"
+            onChange={async (e) => {
+              const v = e.target.value;
+              if (!v) return;
+              const name = v === "none" ? null : lots.find((l) => String(l.id) === v)?.name;
+              const q = v === "none"
+                ? `Remove ${cards(ids.length)} from their purchase? Their cost is cleared.`
+                : `Add ${cards(ids.length)} to "${name}"? The purchase price is split again over all its cards.`;
+              if (!confirm(q)) return;
+              const j = await post("/api/inventory/purchase", { ids, purchaseId: v === "none" ? null : Number(v) });
+              if (j) done(v === "none" ? `Removed ${cards(j.moved)} from their purchase.` : `Added ${cards(j.moved)} to "${name}". Costs are split again.`);
+            }}>
+            <option value="">{lots.length ? "Add to purchase…" : "No purchases yet"}</option>
+            {lots.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            <option value="none">Remove from purchase</option>
+          </select>
           <button disabled={busy} className="ghost" onClick={async () => {
             const j = await post("/api/inventory/reprice", { ids });
             if (j) { setMsg({ ok: true, text: `Prices updated: ${j.changed} of ${j.checked} changed.` }); router.refresh(); }
