@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [preview]
+permissions:
+  contents: write
 jobs:
   screenshots:
     runs-on: ubuntu-latest
@@ -32,3 +34,10 @@ jobs:
         with:
           name: screenshots
           path: screenshots/
+      - name: Publish screenshots to the preview-shots branch
+        if: always()
+        run: |
+          cd screenshots
+          git init -q && git checkout -q -b preview-shots
+          git add -A && git -c user.name=ci -c user.email=ci@local commit -qm "screenshots ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" preview-shots
