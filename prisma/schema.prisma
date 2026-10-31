@@ -46,8 +46,13 @@ model InventoryItem {
   box        Box?      @relation(fields: [boxId], references: [id])
   boxId      Int?
   slot       Int?
+  sku        String?   @unique // C-000123: one ID per physical copy, used on every channel
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+  purchaseId Int?
   askPrice   Float?    // EUR
-  costBasis  Float?    // EUR, what you paid
+  costBasis  Float?    // EUR, what you paid (allocated from the purchase)
+  soldPrice  Float?    // EUR, gross sale price
+  soldAt     DateTime?
   photoPath  String?
   notes      String?
   createdAt  DateTime  @default(now())
@@ -56,6 +61,19 @@ model InventoryItem {
 
   @@unique([boxId, slot])
   @@index([status])
+  @@index([purchaseId])
+}
+
+// A collection bought in one go. Its total price is spread over the cards in it.
+model Purchase {
+  id          Int             @id @default(autoincrement())
+  name        String          // e.g. "Samling fra DBA, Peter"
+  purchasedAt DateTime        @default(now())
+  totalCost   Float           // EUR, everything paid incl. shipping
+  method      String          @default("VALUE") // VALUE = by market value, EQUAL = same per card
+  notes       String?
+  createdAt   DateTime        @default(now())
+  items       InventoryItem[]
 }
 
 model Listing {

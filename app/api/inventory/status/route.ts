@@ -10,7 +10,9 @@ export async function POST(req: Request) {
   if (b.action === "setPrice") {
     const price = Number(b.price);
     if (!(price > 0)) return NextResponse.json({ error: "Invalid price" }, { status: 400 });
-    await prisma.inventoryItem.updateMany({ where: { id: { in: ids } }, data: { askPrice: price } });
+    // Sold copies: correct the sale price. Others: change the ask price.
+    await prisma.inventoryItem.updateMany({ where: { id: { in: ids }, status: "SOLD" }, data: { soldPrice: price } });
+    await prisma.inventoryItem.updateMany({ where: { id: { in: ids }, status: { not: "SOLD" } }, data: { askPrice: price } });
     return NextResponse.json({ ok: true });
   }
   if (!["SOLD", "REMOVED", "IN_STOCK"].includes(b.status)) {

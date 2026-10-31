@@ -80,8 +80,8 @@ test("cardmarket: stock XML and chunking", () => {
 test("cardmarket: CSV escapes and formats", () => {
   const csv = cardmarketCsv([{
     idProduct: 9, name: 'Jace, the "Mind" Sculptor', setCode: "wwk", setName: "Worldwake", collectorNumber: "31",
-    language: "en", condition: "EX", foil: false, quantity: 1, price: 50, location: "B001-0001", inventoryIds: "1",
+    language: "en", condition: "EX", foil: false, quantity: 1, price: 50, location: "B001-0001", skus: "C-000001",
   }]);
   const line = csv.split("\n")[1];
-  assert.ok(line.startsWith('9,"Jace, the ""Mind"" Sculptor",WWK,Worldwake,31,English,EX,No,1,50.00'));
+  assert.ok(line.startsWith('9,"Jace, the ""Mind"" Sculptor",WWK,Worldwake,31,English,EX,No,1,50.00,C-000001,B001-0001,C-000001'));
 });

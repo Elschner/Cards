@@ -3,6 +3,8 @@ import { prisma } from "./db";
 import { findFreeSlot, locationLabel } from "./core/chaos";
 import { computeAskPrice, type Condition } from "./core/pricing";
 import { byId, byIds, upsertCard } from "./scryfall";
+import { skuFor } from "./core/allocation";
+import { reallocate } from "./purchases";
 
 export const BOX_CAPACITY = Number(process.env.BOX_CAPACITY || 500);
 
@@ -29,6 +31,7 @@ export interface AddInput {
   quantity: number;
   costBasis?: number | null;
   photoPath?: string | null;
+  purchaseId?: number | null;
 }
 
 /** Adds N physical copies; each gets its own slot. Returns the created items with locations. */
@@ -48,11 +51,14 @@ export async function addCopies(input: AddInput) {
       data: {
         scryfallId: card.scryfallId, condition: input.condition, foil: input.foil, language: input.language,
         boxId: loc.boxId, slot: loc.slot, askPrice: price, costBasis: input.costBasis ?? null,
-        photoPath: input.photoPath ?? null,
+        photoPath: input.photoPath ?? null, purchaseId: input.purchaseId ?? null,
       },
     });
-    created.push({ id: item.id, location: locationLabel(loc.boxCode, loc.slot) });
+    const sku = skuFor(item.id);
+    await prisma.inventoryItem.update({ where: { id: item.id }, data: { sku } });
+    created.push({ id: item.id, sku, location: locationLabel(loc.boxCode, loc.slot) });
   }
+  if (input.purchaseId) await reallocate(input.purchaseId);
   return { card, askPrice: price, created };
 }
 
@@ -80,10 +86,19 @@ export async function repriceAll(itemIds?: number[]) {
   return { checked: items.length, changed };
 }
 
-/** Mark sold/removed: frees the slot for chaos reuse. */
+/** Mark sold/removed: frees the slot for chaos reuse. Sold copies keep their sale price. */
 export async function setStatus(ids: number[], status: "SOLD" | "REMOVED" | "IN_STOCK") {
+  if (status === "SOLD") {
+    const items = await prisma.inventoryItem.findMany({ where: { id: { in: ids } }, select: { id: true, askPrice: true, soldPrice: true } });
+    const now = new Date();
+    await prisma.$transaction(items.map((it) => prisma.inventoryItem.update({
+      where: { id: it.id },
+      data: { status, boxId: null, slot: null, soldAt: now, soldPrice: it.soldPrice ?? it.askPrice },
+    })));
+    return { count: items.length };
+  }
   return prisma.inventoryItem.updateMany({
     where: { id: { in: ids } },
-    data: status === "IN_STOCK" ? { status } : { status, boxId: null, slot: null },
+    data: status === "IN_STOCK" ? { status, soldPrice: null, soldAt: null } : { status, boxId: null, slot: null },
   });
 }

@@ -36,7 +36,7 @@ export async function exportCsv(itemIds: number[], markListed: boolean) {
       collectorNumber: f.card.collectorNumber, language: f.language, condition: f.condition, foil: f.foil,
       quantity: g.length, price: g[0].price,
       location: g.map((x) => (x.it.box && x.it.slot ? locationLabel(x.it.box.code, x.it.slot) : "")).join(" "),
-      inventoryIds: g.map((x) => x.it.id).join(" "),
+      skus: g.map((x) => x.it.sku ?? `#${x.it.id}`).join(" "),
     };
   });
   // Sort by expansion: Cardmarket's bulk listing works one expansion at a time.

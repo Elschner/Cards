@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       quantity: Math.min(100, Math.max(1, Number(b.quantity) || 1)),
       costBasis: b.costBasis === "" || b.costBasis == null ? null : Number(b.costBasis),
       photoPath: b.photoPath ?? null,
+      purchaseId: Number(b.purchaseId) > 0 ? Number(b.purchaseId) : null,
     });
     return NextResponse.json(res);
   } catch (e) {

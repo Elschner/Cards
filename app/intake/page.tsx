@@ -1,5 +1,6 @@
 "use client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { eur } from "@/lib/format";
 import { CONDITIONS, CONDITION_LABELS, computeAskPrice, type Condition } from "@/lib/core/pricing";
 
 interface Printing {
@@ -25,6 +26,7 @@ interface Row {
   quantity: number;
   costBasis: string;
   locations?: string[];
+  skus?: string[];
   manualQuery: string;
   suggestions: string[];
 }
@@ -56,8 +58,13 @@ const blank = (key: string, previewUrl: string | null): Row => ({
 export default function Intake() {
   const [rows, setRows] = useState<Row[]>([]);
   const [over, setOver] = useState(false);
-  const [defaults, setDefaults] = useState({ condition: "NM" as Condition, costBasis: "" });
+  const [defaults, setDefaults] = useState({ condition: "NM" as Condition, costBasis: "", purchaseId: "" });
+  const [lots, setLots] = useState<{ id: number; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/purchases").then((r) => r.json()).then(setLots).catch(() => {});
+  }, []);
 
   const patch = useCallback((key: string, p: Partial<Row>) => {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...p } : r)));
@@ -85,7 +92,7 @@ export default function Intake() {
           foil: Boolean(j.reading?.foil),
           confidence: j.reading?.confidence,
           state: j.match ? "ready" : "error",
-          error: j.match ? undefined : j.error ?? "Not recognized — search manually",
+          error: j.match ? undefined : j.error ? `Kunne ikke læse kortet: ${j.error}` : "Kortet blev ikke genkendt. Søg på navnet.",
         });
       } catch (e) {
         patch(key, { state: "error", error: (e as Error).message });
@@ -103,7 +110,7 @@ export default function Intake() {
   async function pickName(row: Row, name: string) {
     patch(row.key, { manualQuery: name, suggestions: [] });
     const p: Printing[] = await (await fetch(`/api/scryfall/printings?name=${encodeURIComponent(name)}`)).json();
-    patch(row.key, { printings: p, selectedId: p[0]?.id ?? null, state: p.length ? "ready" : "error", error: p.length ? undefined : "No printings found" });
+    patch(row.key, { printings: p, selectedId: p[0]?.id ?? null, state: p.length ? "ready" : "error", error: p.length ? undefined : "Ingen udgaver fundet" });
   }
 
   async function save(row: Row) {
@@ -114,27 +121,48 @@ export default function Intake() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         scryfallId: row.selectedId, condition: row.condition, foil: row.foil, language: row.language,
-        quantity: row.quantity, costBasis: row.costBasis, photoPath: row.photoPath,
+        quantity: row.quantity, costBasis: defaults.purchaseId ? null : row.costBasis, photoPath: row.photoPath,
+        purchaseId: defaults.purchaseId || null,
       }),
     });
     const j = await res.json();
     if (!res.ok) return patch(row.key, { state: "ready", error: j.error });
-    patch(row.key, { state: "saved", locations: j.created.map((c: { location: string }) => c.location), error: undefined });
+    patch(row.key, {
+      state: "saved", error: undefined,
+      locations: j.created.map((c: { location: string }) => c.location),
+      skus: j.created.map((c: { sku: string }) => c.sku),
+    });
   }
 
   return (
     <>
-      <h1>Intake</h1>
-      <div className="row" style={{ marginBottom: 12 }}>
-        <span className="muted">Defaults for new uploads:</span>
-        <select value={defaults.condition} onChange={(e) => setDefaults({ ...defaults, condition: e.target.value as Condition })}>
-          {CONDITIONS.map((c) => <option key={c} value={c}>{c} – {CONDITION_LABELS[c]}</option>)}
-        </select>
-        <input placeholder="Cost per card €" style={{ width: 140 }} value={defaults.costBasis}
-          onChange={(e) => setDefaults({ ...defaults, costBasis: e.target.value })} />
-        <button className="secondary" onClick={() => setRows((rs) => [{ ...blank(crypto.randomUUID(), null), state: "error", error: "Manual entry", condition: defaults.condition, costBasis: defaults.costBasis }, ...rs])}>
-          + Manual entry
-        </button>
+      <div className="head">
+        <div>
+          <h1>Scan enkeltkort</h1>
+          <p>Tag et billede pr. kort med infolinjen nederst til venstre i fokus. Til store bunker er ManaBox-import hurtigere.</p>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginBottom: 16 }}>
+        <div className="grid-form" style={{ marginTop: 0 }}>
+          <label className="field">Stand for nye kort
+            <select value={defaults.condition} onChange={(e) => setDefaults({ ...defaults, condition: e.target.value as Condition })}>
+              {CONDITIONS.map((c) => <option key={c} value={c}>{c}, {CONDITION_LABELS[c]}</option>)}
+            </select>
+          </label>
+          <label className="field">Indkøb
+            <select value={defaults.purchaseId} onChange={(e) => setDefaults({ ...defaults, purchaseId: e.target.value })}>
+              <option value="">Intet indkøb</option>
+              {lots.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+            <span className="hint">{defaults.purchaseId ? "Indkøbets pris fordeles igen, hver gang et kort tilføjes." : "Eller skriv en kostpris pr. kort herunder."}</span>
+          </label>
+          {!defaults.purchaseId && (
+            <label className="field">Kostpris pr. kort (EUR)
+              <input inputMode="decimal" placeholder="Tom = ukendt" value={defaults.costBasis} onChange={(e) => setDefaults({ ...defaults, costBasis: e.target.value })} />
+            </label>
+          )}
+        </div>
       </div>
 
       <div
@@ -143,11 +171,18 @@ export default function Intake() {
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); handleFiles(e.dataTransfer.files); }}
         onClick={() => inputRef.current?.click()}
+        role="button" tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
       >
-        <strong>Drop card photos here</strong> or click to choose / use phone camera
-        <div className="muted">One card per photo, info line (bottom-left) in focus.</div>
+        <strong>Træk billeder hertil, eller tag et billede</strong>
+        <span className="muted">Ét kort pr. billede. På telefonen åbner kameraet.</span>
         <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple hidden
           onChange={(e) => e.target.files && handleFiles(e.target.files)} />
+      </div>
+      <div className="row" style={{ margin: "10px 0 20px" }}>
+        <button className="ghost" onClick={() => setRows((rs) => [{ ...blank(crypto.randomUUID(), null), state: "error", error: undefined, condition: defaults.condition, costBasis: defaults.costBasis }, ...rs])}>
+          Tilføj kort uden billede
+        </button>
       </div>
 
       {rows.map((row) => {
@@ -160,62 +195,62 @@ export default function Intake() {
         const locked = row.state === "saved" || row.state === "saving";
         return (
           <div key={row.key} className="panel intake-card">
-            <div>{row.previewUrl ? <img src={row.previewUrl} alt="upload" /> : <span className="muted">No photo</span>}</div>
-            <div>{img(sel) ? <img src={img(sel)} alt={sel?.name} /> : <span className="muted">{row.state === "recognizing" ? "Reading card…" : "No match"}</span>}</div>
+            <div>{row.previewUrl ? <img src={row.previewUrl} alt="Dit billede" /> : <span className="hint">Intet billede</span>}</div>
+            <div>{img(sel) ? <img src={img(sel)} alt={sel?.name} /> : <span className="hint">{row.state === "recognizing" ? "Læser kortet…" : "Intet match"}</span>}</div>
             <div>
               {row.state === "saved" ? (
                 <>
-                  <div><strong>{sel?.name}</strong> <span className="muted">{sel?.set.toUpperCase()} #{sel?.collector_number}</span></div>
-                  <div className="muted" style={{ marginTop: 8 }}>Put in:</div>
-                  {row.locations?.map((l) => <div key={l} className="big-loc">{l}</div>)}
+                  <span className="card-name">{sel?.name}</span>
+                  <span className="card-sub">{sel?.set_name} #{sel?.collector_number}</span>
+                  <p className="muted" style={{ margin: "12px 0 6px" }}>Læg kortet på plads:</p>
+                  <div className="row">
+                    {row.locations?.map((l, i) => (
+                      <div key={l}><span className="loc big">{l}</span><div className="sku" style={{ marginTop: 4 }}>{row.skus?.[i]}</div></div>
+                    ))}
+                  </div>
                 </>
               ) : (
                 <>
-                  {row.error && <div className="err" style={{ marginBottom: 6 }}>{row.error}</div>}
+                  {row.error && <div className="err" style={{ marginBottom: 8 }}>{row.error}</div>}
                   {(row.state === "error" || !sel) && row.state !== "recognizing" && (
-                    <div style={{ position: "relative", marginBottom: 8 }}>
-                      <input placeholder="Search card name…" value={row.manualQuery} style={{ width: 320 }}
+                    <div style={{ position: "relative", marginBottom: 10 }}>
+                      <input placeholder="Søg kortnavn…" value={row.manualQuery} style={{ width: "100%", maxWidth: 360 }}
                         onChange={(e) => search(row, e.target.value)} />
                       {row.suggestions.length > 0 && (
-                        <div className="panel" style={{ position: "absolute", zIndex: 5, padding: 4, width: 320 }}>
+                        <div className="panel" style={{ position: "absolute", zIndex: 5, padding: 4, width: 360, maxWidth: "100%" }}>
                           {row.suggestions.map((s) => (
-                            <div key={s} style={{ padding: 4, cursor: "pointer" }} onClick={() => pickName(row, s)}>{s}</div>
+                            <button key={s} className="ghost" style={{ display: "block", width: "100%", textAlign: "left", border: 0 }} onClick={() => pickName(row, s)}>{s}</button>
                           ))}
                         </div>
                       )}
                     </div>
                   )}
                   {row.printings.length > 0 && (
-                    <div className="row" style={{ marginBottom: 8 }}>
-                      <select value={row.selectedId ?? ""} disabled={locked} style={{ maxWidth: 460 }}
+                    <div className="row" style={{ marginBottom: 10 }}>
+                      <select value={row.selectedId ?? ""} disabled={locked} style={{ maxWidth: "100%" }} aria-label="Udgave"
                         onChange={(e) => patch(row.key, { selectedId: e.target.value })}>
                         {row.printings.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} — {p.set_name} ({p.set.toUpperCase()}) #{p.collector_number} · €{p.prices.eur ?? "–"} / foil €{p.prices.eur_foil ?? "–"}
+                            {p.name}, {p.set_name} ({p.set.toUpperCase()}) #{p.collector_number}, {p.prices.eur ? `${p.prices.eur} €` : "ingen pris"}{p.prices.eur_foil ? `, foil ${p.prices.eur_foil} €` : ""}
                           </option>
                         ))}
                       </select>
-                      {row.confidence && <span className="muted">read confidence: {row.confidence}</span>}
+                      {row.confidence && row.confidence !== "high" && <span className="hint">Usikker aflæsning, tjek udgaven</span>}
                     </div>
                   )}
                   <div className="row">
-                    <select value={row.condition} disabled={locked} onChange={(e) => patch(row.key, { condition: e.target.value as Condition })}>
+                    <select value={row.condition} disabled={locked} aria-label="Stand" onChange={(e) => patch(row.key, { condition: e.target.value as Condition })}>
                       {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <select value={row.language} disabled={locked} onChange={(e) => patch(row.key, { language: e.target.value })}>
+                    <select value={row.language} disabled={locked} aria-label="Sprog" onChange={(e) => patch(row.key, { language: e.target.value })}>
                       {LANGS.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
                     </select>
-                    <label><input type="checkbox" checked={row.foil} disabled={locked} onChange={(e) => patch(row.key, { foil: e.target.checked })} /> Foil</label>
-                    <input type="number" min={1} value={row.quantity} disabled={locked} style={{ width: 64 }}
-                      onChange={(e) => patch(row.key, { quantity: Number(e.target.value) })} title="Quantity" />
-                    <input placeholder="Cost €" value={row.costBasis} disabled={locked} style={{ width: 80 }}
-                      onChange={(e) => patch(row.key, { costBasis: e.target.value })} />
-                    <span>
-                      Ask: <strong>{est?.price != null ? `€${est.price.toFixed(2)}` : "—"}</strong>
-                      {est?.isBulk && <span className="muted"> (bulk)</span>}
-                    </span>
+                    <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={row.foil} disabled={locked} onChange={(e) => patch(row.key, { foil: e.target.checked })} />Foil</label>
+                    <input type="number" min={1} value={row.quantity} disabled={locked} style={{ width: 70 }} aria-label="Antal"
+                      onChange={(e) => patch(row.key, { quantity: Number(e.target.value) })} />
+                    <span>Pris <strong>{est?.price != null ? eur(est.price) : "–"}</strong>{est?.isBulk && <span className="hint"> bulk</span>}</span>
                     <button disabled={!sel || locked} onClick={() => save(row)}>
-                      {row.state === "saving" ? "Saving…" : "Add to inventory"}
+                      {row.state === "saving" ? "Gemmer…" : "Læg på lager"}
                     </button>
                   </div>
                 </>

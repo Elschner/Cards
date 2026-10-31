@@ -93,7 +93,8 @@ export interface CsvRow {
   quantity: number;
   price: number;
   location: string;
-  inventoryIds: string;
+  /** Space-separated SKUs of the copies in this row (C-000123 C-000124). */
+  skus: string;
 }
 
 function csvCell(v: string | number | boolean | null): string {
@@ -110,13 +111,14 @@ const LANGUAGE_NAME: Record<string, string> = {
 export function cardmarketCsv(rows: CsvRow[]): string {
   const header = [
     "idProduct", "Name", "Set code", "Expansion", "Collector number", "Language", "Condition",
-    "Foil", "Quantity", "Price", "Comment", "Location", "Inventory IDs",
+    "Foil", "Quantity", "Price", "Comment", "Location", "SKU",
   ];
   const lines = rows.map((r) =>
     [
       r.idProduct, r.name, r.setCode.toUpperCase(), r.setName, r.collectorNumber,
       LANGUAGE_NAME[r.language] ?? r.language, r.condition, r.foil ? "Yes" : "No",
-      r.quantity, r.price.toFixed(2), "", r.location, r.inventoryIds,
+      // Comment carries the SKUs so every Cardmarket order shows which physical copy it is.
+      r.quantity, r.price.toFixed(2), r.skus, r.location, r.skus,
     ].map(csvCell).join(","),
   );
   return [header.join(","), ...lines].join("\n") + "\n";

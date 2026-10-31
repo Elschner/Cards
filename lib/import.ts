@@ -1,19 +1,20 @@
 // Bulk import (ManaBox CSV): resolve cards via Scryfall in batches, allocate chaos slots
-// for every copy in scan order, price them, and create inventory rows in one go.
+// for every copy in scan order, price them, give each copy a SKU, and optionally attach
+// everything to a purchase whose total price is spread over the cards.
 import { prisma } from "./db";
 import { findFreeSlots, locationLabel } from "./core/chaos";
 import { computeAskPrice } from "./core/pricing";
+import { skuFor, type AllocationMethod } from "./core/allocation";
 import type { ImportRow } from "./core/manabox";
 import { byIds, upsertCard } from "./scryfall";
 import { BOX_CAPACITY } from "./inventory";
+import { createPurchase, reallocate } from "./purchases";
 
-export interface ImportOptions {
-  /** Use ManaBox 'Purchase price' as cost basis (converted to EUR). */
-  useFilePrice: boolean;
-  usdToEur: number;
-  /** Cost per card when not taken from the file (EUR), or null. */
-  defaultCost: number | null;
-}
+export type CostMode =
+  | { kind: "newLot"; name: string; totalCost: number; method: AllocationMethod; purchasedAt?: Date }
+  | { kind: "existingLot"; purchaseId: number }
+  | { kind: "file"; usdToEur: number; fallback: number | null } // ManaBox 'Purchase price'
+  | { kind: "flat"; perCard: number | null };
 
 export interface Placement {
   line: number;
@@ -26,26 +27,38 @@ export interface Placement {
   askPrice: number | null;
   flags: string[];
   locations: string[];
+  skus: string[];
 }
 
-function costFor(row: ImportRow, o: ImportOptions): number | null {
-  if (o.useFilePrice && row.purchasePrice != null) {
-    const cur = (row.purchaseCurrency ?? "").toUpperCase();
-    if (cur === "EUR") return row.purchasePrice;
-    if (cur === "USD") return Math.round(row.purchasePrice * o.usdToEur * 100) / 100;
+function rowCost(row: ImportRow, mode: CostMode): number | null {
+  if (mode.kind === "flat") return mode.perCard;
+  if (mode.kind === "file") {
+    if (row.purchasePrice != null) {
+      const cur = (row.purchaseCurrency ?? "").toUpperCase();
+      if (cur === "EUR") return row.purchasePrice;
+      if (cur === "USD") return Math.round(row.purchasePrice * mode.usdToEur * 100) / 100;
+    }
+    return mode.fallback;
   }
-  return o.defaultCost;
+  return null; // lots: allocated after insert
 }
 
-export async function importRows(input: ImportRow[], o: ImportOptions) {
+export async function importRows(input: ImportRow[], mode: CostMode) {
   const rows = input.filter((r) => !r.skip);
   const errors: string[] = [];
 
+  let purchaseId: number | null = null;
+  if (mode.kind === "newLot") purchaseId = (await createPurchase(mode)).id;
+  if (mode.kind === "existingLot") {
+    const p = await prisma.purchase.findUnique({ where: { id: mode.purchaseId } });
+    if (!p) throw new Error("Indkøbet findes ikke");
+    purchaseId = p.id;
+  }
+
   // 1. Resolve and cache all printings (75 per Scryfall request).
   const ids = [...new Set(rows.map((r) => r.scryfallId))];
-  const found = await byIds(ids);
   const cards = new Map<string, Awaited<ReturnType<typeof upsertCard>>>();
-  for (const sc of found) cards.set(sc.id, await upsertCard(sc));
+  for (const sc of await byIds(ids)) cards.set(sc.id, await upsertCard(sc));
   const valid = rows.filter((r) => {
     if (cards.has(r.scryfallId)) return true;
     errors.push(`Linje ${r.line} (${r.name}): ikke fundet på Scryfall – sprunget over`);
@@ -70,8 +83,9 @@ export async function importRows(input: ImportRow[], o: ImportOptions) {
     }
   }
 
-  // 3. Build rows + placement list.
+  // 3. Build rows.
   const data = [];
+  const rowOfCopy: number[] = [];
   const placements: Placement[] = [];
   let k = 0;
   for (const r of valid) {
@@ -84,20 +98,27 @@ export async function importRows(input: ImportRow[], o: ImportOptions) {
     for (let q = 0; q < r.quantity; q++) {
       const s = slots[k++];
       locations.push(locationLabel(s.boxCode, s.slot));
+      rowOfCopy.push(placements.length);
       data.push({
         scryfallId: card.scryfallId, condition: r.condition, foil: r.foil, language: r.language,
-        boxId: boxIds.get(s.boxCode)!, slot: s.slot, askPrice: price, costBasis: costFor(r, o),
+        boxId: boxIds.get(s.boxCode)!, slot: s.slot, askPrice: price, costBasis: rowCost(r, mode),
+        purchaseId,
         notes: [r.flags.length ? r.flags.join(", ") : null, "Import: ManaBox"].filter(Boolean).join(" · "),
       });
     }
     placements.push({
       line: r.line, name: card.name, set: card.setCode.toUpperCase(), number: card.collectorNumber,
-      condition: r.condition, language: r.language, foil: r.foil, askPrice: price, flags: r.flags, locations,
+      condition: r.condition, language: r.language, foil: r.foil, askPrice: price, flags: r.flags, locations, skus: [],
     });
   }
 
-  // 4. Insert in one transaction so a failure leaves nothing half-imported.
-  await prisma.$transaction(data.map((d) => prisma.inventoryItem.create({ data: d })));
+  // 4. Insert in one transaction, then stamp each copy with its SKU.
+  const created = await prisma.$transaction(data.map((d) => prisma.inventoryItem.create({ data: d, select: { id: true } })));
+  await prisma.$transaction(created.map((c) => prisma.inventoryItem.update({ where: { id: c.id }, data: { sku: skuFor(c.id) } })));
+  created.forEach((c, i) => placements[rowOfCopy[i]].skus.push(skuFor(c.id)));
+
+  // 5. Spread the lot price over all of the lot's cards (including earlier imports).
+  if (purchaseId != null) await reallocate(purchaseId);
 
   const value = placements.reduce((s, p) => s + (p.askPrice ?? 0) * p.locations.length, 0);
   return {
@@ -105,6 +126,7 @@ export async function importRows(input: ImportRow[], o: ImportOptions) {
     skipped: input.length - rows.length,
     errors,
     value: Math.round(value * 100) / 100,
+    purchaseId,
     placements,
   };
 }
