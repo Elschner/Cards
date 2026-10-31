@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { bulkGroups } from "@/lib/channels/cardmarket";
+import { bulkGroups, powertoolsExport } from "@/lib/channels/cardmarket";
 import { cards, eur } from "@/lib/format";
 import ListingSet from "@/components/ListingSet";
+import PowertoolsPanel from "@/components/PowertoolsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Listing({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const ids = sp.ids ? sp.ids.split(",").map(Number).filter((n) => n > 0) : undefined;
-  const groups = await bulkGroups(ids);
+  const [groups, pt] = await Promise.all([bulkGroups(ids), powertoolsExport(ids)]);
   const total = groups.reduce((n, g) => n + g.copies, 0);
   const value = groups.reduce((n, g) => n + g.value, 0);
 
@@ -21,7 +22,7 @@ export default async function Listing({ searchParams }: { searchParams: Promise<
           <h1>List on Cardmarket</h1>
           <p>
             {total ? `${cards(total)} worth ${eur(value)} in ${groups.length} ${groups.length === 1 ? "set" : "sets"}.` : "Nothing to list."}{" "}
-            Cardmarket&apos;s Bulk listing works one set at a time, so each set below has its own file.
+            Upload everything through TCG PowerTools in one go, or set by set with Cardmarket&apos;s own Bulk listing.
           </p>
         </div>
       </div>
@@ -33,6 +34,9 @@ export default async function Listing({ searchParams }: { searchParams: Promise<
         </div>
       ) : (
         <>
+          <PowertoolsPanel data={pt} />
+          <h2 style={{ margin: "32px 0 6px" }}>Or set by set, with Cardmarket&apos;s Bulk listing</h2>
+          <p className="muted" style={{ marginTop: 0 }}>Free, but one set at a time. Needs the Cardmarket Bulk Import browser extension.</p>
           <details className="panel" style={{ marginBottom: 16 }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>How it works (first time: install the extension)</summary>
             <ol style={{ margin: "12px 0 0", paddingLeft: 20, lineHeight: 1.7 }}>

@@ -62,7 +62,10 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
    collector number and language from the card; Scryfall resolves the exact printing.
    Correct the printing/condition/language/foil if needed → *Add to inventory*.
    The screen shows the slot, e.g. **B001-0042** — put the card there. No sorting.
-2. **Inventory** — select in-stock cards and press **List on Cardmarket**. The listing page
+2. **Inventory** — select in-stock cards and press **List on Cardmarket**. Fastest: **Download
+   PowerTools CSV** (all sets in one file, matched by Cardmarket ID, buy price = allocated cost),
+   import it in TCG PowerTools (Listing & Appraisal → Import a file), publish, then **Mark as listed**.
+   Free alternative: the listing page
    gives one CSV per set (Cardmarket's Bulk listing works per set), a direct link to that set's
    Bulk listing page, and a **Mark as listed** button. Fill the page with the free
    *Cardmarket Bulk Import* extension (leave Set unmapped), check, put up for sale. Older route:
