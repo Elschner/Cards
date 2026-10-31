@@ -105,7 +105,7 @@ export default function InventoryTable({ rows, lots, apiEnabled, initialStatus, 
 
       <div className="panel" style={{ padding: 12, marginBottom: 12 }}>
         <div className="row">
-          <button disabled={busy || !canList} title={listBlock} onClick={() => exportCsv(true)}>List on Cardmarket (CSV)</button>
+          <button disabled={busy || !canList} title={listBlock} onClick={() => router.push(`/listing?ids=${ids.join(",")}`)}>List on Cardmarket</button>
           <button disabled={busy || !canList} title={listBlock} className="ghost" onClick={() => exportCsv(false)}>Download CSV only</button>
           <button disabled={busy || !canList || !apiEnabled} className="ghost"
             title={apiEnabled ? listBlock : "Needs API access from Cardmarket. See README."}

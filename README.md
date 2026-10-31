@@ -62,7 +62,10 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
    collector number and language from the card; Scryfall resolves the exact printing.
    Correct the printing/condition/language/foil if needed → *Add to inventory*.
    The screen shows the slot, e.g. **B001-0042** — put the card there. No sorting.
-2. **Inventory** — filter `IN_STOCK`, select, *Reprice from trend*, then list:
+2. **Inventory** — select in-stock cards and press **List on Cardmarket**. The listing page
+   gives one CSV per set (Cardmarket's Bulk listing works per set), a direct link to that set's
+   Bulk listing page, and a **Mark as listed** button. Fill the page with the free
+   *Cardmarket Bulk Import* extension (leave Set unmapped), check, put up for sale. Older route:
    - **CSV + mark listed** → upload via Cardmarket's bulk listing (see below), or
    - **Push to Cardmarket (API)** if you have API credentials.
 3. **Pick list** — when an order arrives, find the card's location, pull it, then

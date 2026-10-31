@@ -4,6 +4,8 @@
 //    (Cardmarket is not accepting new API applications at the moment).
 import { prisma } from "../db";
 import { locationLabel } from "../core/chaos";
+import { bulkCsv, bulkListingUrl, groupBySet } from "../core/bulklisting";
+import { cardmarketSets } from "../mtgjson";
 import { cardmarketCsv, chunk, groupForListing, mkmAuthHeader, stockXml, type CsvRow } from "../core/cardmarket";
 
 export function apiConfigured() {
@@ -107,4 +109,41 @@ export async function pushViaApi(itemIds: number[]) {
     }
   }
   return results;
+}
+
+// ---------- Bulk listing (manual upload with the Cardmarket Bulk Import extension) ----------
+
+/** In-stock, priced copies grouped by expansion, with a direct Cardmarket link per set. */
+export async function bulkGroups(itemIds?: number[]) {
+  const items = await prisma.inventoryItem.findMany({
+    where: { status: "IN_STOCK", askPrice: { not: null }, ...(itemIds ? { id: { in: itemIds } } : {}) },
+    include: { card: true },
+  });
+  const groups = groupBySet(items.map((it) => ({
+    id: it.id, sku: it.sku, name: it.card.name, setCode: it.card.setCode, setName: it.card.setName,
+    rarity: it.card.rarity, language: it.language, condition: it.condition, foil: it.foil, price: it.askPrice!,
+  })));
+  const mcm = await cardmarketSets();
+  return groups.map((g) => {
+    const m = mcm.get(g.setCode) ?? null;
+    // The Bulk listing page takes 100 rows at a time: split big sets into parts.
+    const parts = chunk(g.rows, 100).map((rows, i) => ({
+      part: i + 1, rows: rows.length, copies: rows.reduce((n, r) => n + r.quantity, 0),
+      ids: rows.flatMap((r) => r.ids), csv: bulkCsv(rows),
+    }));
+    return {
+      setCode: g.setCode, setName: g.setName, cardmarketName: m?.mcmName ?? null, url: bulkListingUrl(m?.mcmId ?? null),
+      copies: g.copies, value: g.value, rows: g.rows, parts,
+    };
+  });
+}
+
+/** Call after the cards are actually put up for sale on Cardmarket. Only in-stock copies change. */
+export async function markListed(itemIds: number[]) {
+  const items = await prisma.inventoryItem.findMany({ where: { id: { in: itemIds }, status: "IN_STOCK" }, select: { id: true, askPrice: true } });
+  await prisma.$transaction([
+    ...items.map((it) => prisma.listing.create({ data: { itemId: it.id, channel: "CARDMARKET", method: "BULK", price: it.askPrice ?? 0, status: "ACTIVE" } })),
+    prisma.inventoryItem.updateMany({ where: { id: { in: items.map((i) => i.id) } }, data: { status: "LISTED" } }),
+  ]);
+  return { listed: items.length };
 }

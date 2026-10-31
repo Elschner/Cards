@@ -12,6 +12,7 @@ const pages = [
   ["import", "/import"],
   ["intake", "/intake"],
   ["pick", "/pick"],
+  ["listing", "/listing"],
 ];
 mkdirSync("screenshots", { recursive: true });
 const browser = await chromium.launch();
