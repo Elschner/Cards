@@ -155,7 +155,7 @@ export default function Intake() {
               <option value="">Intet indkøb</option>
               {lots.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <span className="hint">{defaults.purchaseId ? "Indkøbets pris fordeles igen, hver gang et kort tilføjes." : "Eller skriv en kostpris pr. kort herunder."}</span>
+            <span className="hint">{defaults.purchaseId ? "Indkøbets pris fordeles igen, hver gang et kort tilføjes." : "Eller skriv en fast kostpris pr. kort."}</span>
           </label>
           {!defaults.purchaseId && (
             <label className="field">Kostpris pr. kort (EUR)
