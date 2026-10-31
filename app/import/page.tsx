@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { parseManabox, type ImportRow } from "@/lib/core/manabox";
-import { eur, int } from "@/lib/format";
+import { cards, eur } from "@/lib/format";
 import { MethodChoice } from "@/components/NewPurchaseForm";
 
 interface Placement {
@@ -67,25 +67,25 @@ export default function ImportPage() {
       <>
         <div className="head">
           <div>
-            <h1>{int(result.imported)} kort er på lageret</h1>
+            <h1>{cards(result.imported)} added to inventory</h1>
             <p>
-              Salgsværdi {eur(result.value)}.
-              {result.skipped > 0 && ` ${result.skipped} linjer blev sprunget over.`}
+              Sales value {eur(result.value)}.
+              {result.skipped > 0 && ` ${result.skipped} lines were skipped.`}
             </p>
           </div>
           <div className="row no-print">
-            <button onClick={() => window.print()}>Print placeringsliste</button>
-            {result.purchaseId && <Link className="btn ghost" href={`/purchases/${result.purchaseId}`}>Se indkøbet</Link>}
-            <button className="ghost" onClick={() => { setResult(null); setRows([]); setCsv(""); setFileName(""); setLotName(""); setLotTotal(""); }}>Importér en fil til</button>
+            <button onClick={() => window.print()}>Print placement list</button>
+            {result.purchaseId && <Link className="btn ghost" href={`/purchases/${result.purchaseId}`}>View purchase</Link>}
+            <button className="ghost" onClick={() => { setResult(null); setRows([]); setCsv(""); setFileName(""); setLotName(""); setLotTotal(""); }}>Import another file</button>
           </div>
         </div>
         {result.errors.map((e) => <div key={e} className="err">{e}</div>)}
         <div className="notice">
-          Listen følger rækkefølgen, du scannede i. Tag bunken fra toppen, og læg hvert kort på pladsen ud for det.
+          The list follows the order you scanned in. Take the stack from the top and put each card in the slot next to it.
         </div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Placering</th><th>SKU</th><th>Kort</th><th>Stand</th><th className="num">Pris</th><th>Bemærkning</th></tr></thead>
+            <thead><tr><th>Location</th><th>SKU</th><th>Card</th><th>Condition</th><th className="num">Price</th><th>Note</th></tr></thead>
             <tbody>
               {result.placements.map((p) => (
                 <tr key={p.line}>
@@ -108,14 +108,14 @@ export default function ImportPage() {
     <>
       <div className="head">
         <div>
-          <h1>Importér fra ManaBox</h1>
-          <p>Scan kortene i ManaBox, sæt stand og sprog dér, og eksportér som CSV. Hvert kort får en plads, en pris og sit eget SKU.</p>
+          <h1>Import from ManaBox</h1>
+          <p>Scan the cards in ManaBox, set condition and language there, and export as CSV. Every card gets a slot, a price and its own SKU.</p>
         </div>
       </div>
 
       <label className="drop">
-        <strong>{fileName || "Vælg ManaBox-fil"}</strong>
-        <span className="muted">{fileName ? `${int(copies)} kort fundet. Klik for at vælge en anden fil.` : "CSV-eksport fra ManaBox"}</span>
+        <strong>{fileName || "Choose ManaBox file"}</strong>
+        <span className="muted">{fileName ? `${cards(copies)} found. Click to choose another file.` : "CSV export from ManaBox"}</span>
         <input type="file" accept=".csv,text/csv" hidden onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       </label>
       {parseErrors.map((e) => <div key={e} className="err" style={{ marginTop: 8 }}>{e}</div>)}
@@ -123,46 +123,46 @@ export default function ImportPage() {
       {rows.length > 0 && (
         <>
           <div className="section">
-            <h2>Hvad har du betalt?</h2>
+            <h2>What did you pay?</h2>
             <div className="panel">
-              <div className="seg" role="radiogroup" aria-label="Kostpris">
-                <label><input type="radio" name="mode" checked={mode === "newLot"} onChange={() => setMode("newLot")} />Nyt indkøb</label>
-                <label><input type="radio" name="mode" checked={mode === "existingLot"} onChange={() => setMode("existingLot")} disabled={!lots.length} />Tilføj til indkøb</label>
-                <label><input type="radio" name="mode" checked={mode === "flat"} onChange={() => setMode("flat")} />Fast pris pr. kort</label>
-                <label><input type="radio" name="mode" checked={mode === "file"} onChange={() => setMode("file")} />Pris fra ManaBox</label>
+              <div className="seg" role="radiogroup" aria-label="Cost">
+                <label><input type="radio" name="mode" checked={mode === "newLot"} onChange={() => setMode("newLot")} />New purchase</label>
+                <label><input type="radio" name="mode" checked={mode === "existingLot"} onChange={() => setMode("existingLot")} disabled={!lots.length} />Add to purchase</label>
+                <label><input type="radio" name="mode" checked={mode === "flat"} onChange={() => setMode("flat")} />Fixed cost per card</label>
+                <label><input type="radio" name="mode" checked={mode === "file"} onChange={() => setMode("file")} />Price from ManaBox</label>
               </div>
 
               {mode === "newLot" && (
                 <>
                   <div className="grid-form">
-                    <label className="field">Navn på indkøbet<input value={lotName} onChange={(e) => setLotName(e.target.value)} placeholder="Fx Samling fra DBA, Peter" /></label>
-                    <label className="field">Betalt i alt (EUR)<input inputMode="decimal" value={lotTotal} onChange={(e) => setLotTotal(e.target.value)} placeholder="Inkl. fragt" /></label>
-                    <label className="field">Købt den<input type="date" value={lotDate} onChange={(e) => setLotDate(e.target.value)} /></label>
+                    <label className="field">Purchase name<input value={lotName} onChange={(e) => setLotName(e.target.value)} placeholder="E.g. Collection from DBA, Peter" /></label>
+                    <label className="field">Total paid (EUR)<input inputMode="decimal" value={lotTotal} onChange={(e) => setLotTotal(e.target.value)} placeholder="Incl. shipping" /></label>
+                    <label className="field">Purchase date<input type="date" value={lotDate} onChange={(e) => setLotDate(e.target.value)} /></label>
                   </div>
                   <div style={{ marginTop: 14 }}><MethodChoice name="import-method" value={lotMethod} onChange={setLotMethod} /></div>
                 </>
               )}
               {mode === "existingLot" && (
                 <div className="grid-form">
-                  <label className="field">Indkøb
+                  <label className="field">Purchase
                     <select value={purchaseId} onChange={(e) => setPurchaseId(e.target.value)}>
-                      <option value="">Vælg…</option>
-                      {lots.map((l) => <option key={l.id} value={l.id}>{l.name} ({int(l.cards)} kort, {eur(l.totalCost)})</option>)}
+                      <option value="">Choose…</option>
+                      {lots.map((l) => <option key={l.id} value={l.id}>{l.name} ({cards(l.cards)}, {eur(l.totalCost)})</option>)}
                     </select>
-                    <span className="hint">Prisen fordeles igen over alle kort i indkøbet, også dem du har importeret før.</span>
+                    <span className="hint">The price is split again over all cards in the purchase, including those imported earlier.</span>
                   </label>
                 </div>
               )}
               {mode === "flat" && (
                 <div className="grid-form">
-                  <label className="field">Kostpris pr. kort (EUR)<input inputMode="decimal" value={flatCost} onChange={(e) => setFlatCost(e.target.value)} placeholder="Tom = ukendt" /></label>
+                  <label className="field">Cost per card (EUR)<input inputMode="decimal" value={flatCost} onChange={(e) => setFlatCost(e.target.value)} placeholder="Empty = unknown" /></label>
                 </div>
               )}
               {mode === "file" && (
                 <div className="grid-form">
-                  <label className="field">USD til EUR<input inputMode="decimal" value={usdToEur} onChange={(e) => setUsdToEur(e.target.value)} /></label>
-                  <label className="field">Kort uden pris i filen (EUR)<input inputMode="decimal" value={flatCost} onChange={(e) => setFlatCost(e.target.value)} placeholder="Tom = ukendt" /></label>
-                  <span className="hint" style={{ alignSelf: "end" }}>ManaBox udfylder ofte markedsprisen her, ikke det du betalte. Brug kun dette, hvis du selv har skrevet priserne ind.</span>
+                  <label className="field">USD to EUR<input inputMode="decimal" value={usdToEur} onChange={(e) => setUsdToEur(e.target.value)} /></label>
+                  <label className="field">Cards without a price in the file (EUR)<input inputMode="decimal" value={flatCost} onChange={(e) => setFlatCost(e.target.value)} placeholder="Empty = unknown" /></label>
+                  <span className="hint" style={{ alignSelf: "end" }}>ManaBox often fills in the market price here, not what you paid. Only use this if you entered the prices yourself.</span>
                 </div>
               )}
             </div>
@@ -170,15 +170,15 @@ export default function ImportPage() {
 
           <div className="row" style={{ margin: "20px 0" }}>
             <button disabled={busy || !importable.length || missingCost} onClick={doImport}>
-              {busy ? "Henter priser og fordeler pladser…" : `Importér ${int(copies)} kort`}
+              {busy ? "Fetching prices and assigning slots…" : `Import ${cards(copies)}`}
             </button>
-            {missingCost && <span className="hint">{mode === "newLot" ? "Skriv hvad du har betalt." : "Vælg et indkøb."}</span>}
+            {missingCost && <span className="hint">{mode === "newLot" ? "Enter what you paid." : "Choose a purchase."}</span>}
             {fail && <span className="err">{fail}</span>}
           </div>
 
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Kort</th><th>Stand</th><th>Sprog</th><th className="num">Antal</th><th>Bemærkning</th></tr></thead>
+              <thead><tr><th>Card</th><th>Condition</th><th>Language</th><th className="num">Qty</th><th>Note</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.line} className={r.skip ? "dim" : undefined}>

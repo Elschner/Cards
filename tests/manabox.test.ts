@@ -46,13 +46,13 @@ test("manabox: conditions, foil, proxy, flags, sorting by Added", () => {
   assert.equal(rows[1].quantity, 2);
   assert.equal(rows[1].language, "de");
   assert.deepEqual(rows[1].flags, ["Altered"]);
-  assert.equal(rows[2].skip, "Proxy – sælges ikke");
+  assert.equal(rows[2].skip, "Proxy, not for sale");
 });
 
 test("manabox: bad rows become errors, wrong file is rejected", () => {
   const bad = [HEADER, `X,S,S,1,normal,rare,1,1,not-an-id,0,false,false,false,near_mint,en,false,USD,`].join("\n");
   assert.equal(parseManabox(bad).errors.length, 1);
-  assert.match(parseManabox("foo,bar\n1,2").errors[0], /Ikke en ManaBox-eksport/);
+  assert.match(parseManabox("foo,bar\n1,2").errors[0], /Not a ManaBox export/);
 });
 
 test("chaos: bulk allocation fills gaps, then opens new boxes", () => {

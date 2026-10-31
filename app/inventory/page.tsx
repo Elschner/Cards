@@ -43,8 +43,8 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     <>
       <div className="head">
         <div>
-          <h1>Lager</h1>
-          <p>Vælg kort og sæt dem til salg. Når et kort er solgt, markér det som solgt, så pladsen bliver ledig.</p>
+          <h1>Inventory</h1>
+          <p>Select cards to list them for sale. When a card has sold, mark it as sold so its slot is freed. Delete test cards or mistakes with Delete.</p>
         </div>
       </div>
       <InventoryTable

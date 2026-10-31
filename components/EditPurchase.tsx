@@ -20,20 +20,20 @@ export default function EditPurchase(p: { id: number; name: string; totalCost: n
     const j = await res.json();
     setBusy(false);
     if (!res.ok) return setMsg({ ok: false, text: j.error });
-    setMsg({ ok: true, text: `Gemt. Prisen er fordelt på ${j.items} kort.` });
+    setMsg({ ok: true, text: `Saved. The price is split over ${j.items} cards.` });
     router.refresh();
   }
 
   return (
     <div className="panel">
       <div className="grid-form" style={{ marginTop: 0 }}>
-        <label className="field">Navn<input value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="field">Betalt i alt (EUR)<input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} /></label>
+        <label className="field">Name<input value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <label className="field">Total paid (EUR)<input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} /></label>
       </div>
       <div style={{ marginTop: 14 }}><MethodChoice name={`method-${p.id}`} value={method} onChange={setMethod} /></div>
       <div className="row" style={{ marginTop: 16 }}>
-        <button disabled={busy} onClick={save}>{busy ? "Fordeler…" : "Gem og fordel prisen"}</button>
-        <span className="hint">Solgte kort er med i fordelingen, så indkøbets samlede kostpris altid passer.</span>
+        <button disabled={busy} onClick={save}>{busy ? "Splitting…" : "Save and split the price"}</button>
+        <span className="hint">Sold cards are included in the split, so the total cost always matches what you paid.</span>
       </div>
       {msg && <div className={msg.ok ? "ok" : "notice err"}>{msg.text}</div>}
     </div>

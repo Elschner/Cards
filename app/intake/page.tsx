@@ -92,7 +92,7 @@ export default function Intake() {
           foil: Boolean(j.reading?.foil),
           confidence: j.reading?.confidence,
           state: j.match ? "ready" : "error",
-          error: j.match ? undefined : j.error ? `Kunne ikke læse kortet: ${j.error}` : "Kortet blev ikke genkendt. Søg på navnet.",
+          error: j.match ? undefined : j.error ? `Could not read the card: ${j.error}` : "Card not recognised. Search by name.",
         });
       } catch (e) {
         patch(key, { state: "error", error: (e as Error).message });
@@ -110,7 +110,7 @@ export default function Intake() {
   async function pickName(row: Row, name: string) {
     patch(row.key, { manualQuery: name, suggestions: [] });
     const p: Printing[] = await (await fetch(`/api/scryfall/printings?name=${encodeURIComponent(name)}`)).json();
-    patch(row.key, { printings: p, selectedId: p[0]?.id ?? null, state: p.length ? "ready" : "error", error: p.length ? undefined : "Ingen udgaver fundet" });
+    patch(row.key, { printings: p, selectedId: p[0]?.id ?? null, state: p.length ? "ready" : "error", error: p.length ? undefined : "No printings found" });
   }
 
   async function save(row: Row) {
@@ -138,28 +138,28 @@ export default function Intake() {
     <>
       <div className="head">
         <div>
-          <h1>Scan enkeltkort</h1>
-          <p>Tag et billede pr. kort med infolinjen nederst til venstre i fokus. Til store bunker er ManaBox-import hurtigere.</p>
+          <h1>Scan single cards</h1>
+          <p>Take one photo per card with the info line (bottom left) in focus. For big stacks, ManaBox import is faster.</p>
         </div>
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>
         <div className="grid-form" style={{ marginTop: 0 }}>
-          <label className="field">Stand for nye kort
+          <label className="field">Condition for new cards
             <select value={defaults.condition} onChange={(e) => setDefaults({ ...defaults, condition: e.target.value as Condition })}>
               {CONDITIONS.map((c) => <option key={c} value={c}>{c}, {CONDITION_LABELS[c]}</option>)}
             </select>
           </label>
-          <label className="field">Indkøb
+          <label className="field">Purchase
             <select value={defaults.purchaseId} onChange={(e) => setDefaults({ ...defaults, purchaseId: e.target.value })}>
-              <option value="">Intet indkøb</option>
+              <option value="">No purchase</option>
               {lots.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <span className="hint">{defaults.purchaseId ? "Indkøbets pris fordeles igen, hver gang et kort tilføjes." : "Eller skriv en fast kostpris pr. kort."}</span>
+            <span className="hint">{defaults.purchaseId ? "The purchase price is split again each time a card is added." : "Or enter a fixed cost per card."}</span>
           </label>
           {!defaults.purchaseId && (
-            <label className="field">Kostpris pr. kort (EUR)
-              <input inputMode="decimal" placeholder="Tom = ukendt" value={defaults.costBasis} onChange={(e) => setDefaults({ ...defaults, costBasis: e.target.value })} />
+            <label className="field">Cost per card (EUR)
+              <input inputMode="decimal" placeholder="Empty = unknown" value={defaults.costBasis} onChange={(e) => setDefaults({ ...defaults, costBasis: e.target.value })} />
             </label>
           )}
         </div>
@@ -174,14 +174,14 @@ export default function Intake() {
         role="button" tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
       >
-        <strong>Træk billeder hertil, eller tag et billede</strong>
-        <span className="muted">Ét kort pr. billede. På telefonen åbner kameraet.</span>
+        <strong>Drop photos here, or take a photo</strong>
+        <span className="muted">One card per photo. On a phone, the camera opens.</span>
         <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple hidden
           onChange={(e) => e.target.files && handleFiles(e.target.files)} />
       </div>
       <div className="row" style={{ margin: "10px 0 20px" }}>
         <button className="ghost" onClick={() => setRows((rs) => [{ ...blank(crypto.randomUUID(), null), state: "error", error: undefined, condition: defaults.condition, costBasis: defaults.costBasis }, ...rs])}>
-          Tilføj kort uden billede
+          Add card without photo
         </button>
       </div>
 
@@ -195,14 +195,14 @@ export default function Intake() {
         const locked = row.state === "saved" || row.state === "saving";
         return (
           <div key={row.key} className="panel intake-card">
-            <div>{row.previewUrl ? <img src={row.previewUrl} alt="Dit billede" /> : <span className="hint">Intet billede</span>}</div>
-            <div>{img(sel) ? <img src={img(sel)} alt={sel?.name} /> : <span className="hint">{row.state === "recognizing" ? "Læser kortet…" : "Intet match"}</span>}</div>
+            <div>{row.previewUrl ? <img src={row.previewUrl} alt="Your photo" /> : <span className="hint">No photo</span>}</div>
+            <div>{img(sel) ? <img src={img(sel)} alt={sel?.name} /> : <span className="hint">{row.state === "recognizing" ? "Reading card…" : "No match"}</span>}</div>
             <div>
               {row.state === "saved" ? (
                 <>
                   <span className="card-name">{sel?.name}</span>
                   <span className="card-sub">{sel?.set_name} #{sel?.collector_number}</span>
-                  <p className="muted" style={{ margin: "12px 0 6px" }}>Læg kortet på plads:</p>
+                  <p className="muted" style={{ margin: "12px 0 6px" }}>Put the card in:</p>
                   <div className="row">
                     {row.locations?.map((l, i) => (
                       <div key={l}><span className="loc big">{l}</span><div className="sku" style={{ marginTop: 4 }}>{row.skus?.[i]}</div></div>
@@ -214,7 +214,7 @@ export default function Intake() {
                   {row.error && <div className="err" style={{ marginBottom: 8 }}>{row.error}</div>}
                   {(row.state === "error" || !sel) && row.state !== "recognizing" && (
                     <div style={{ position: "relative", marginBottom: 10 }}>
-                      <input placeholder="Søg kortnavn…" value={row.manualQuery} style={{ width: "100%", maxWidth: 360 }}
+                      <input placeholder="Search card name…" value={row.manualQuery} style={{ width: "100%", maxWidth: 360 }}
                         onChange={(e) => search(row, e.target.value)} />
                       {row.suggestions.length > 0 && (
                         <div className="panel" style={{ position: "absolute", zIndex: 5, padding: 4, width: 360, maxWidth: "100%" }}>
@@ -227,30 +227,30 @@ export default function Intake() {
                   )}
                   {row.printings.length > 0 && (
                     <div className="row" style={{ marginBottom: 10 }}>
-                      <select value={row.selectedId ?? ""} disabled={locked} style={{ maxWidth: "100%" }} aria-label="Udgave"
+                      <select value={row.selectedId ?? ""} disabled={locked} style={{ maxWidth: "100%" }} aria-label="Printing"
                         onChange={(e) => patch(row.key, { selectedId: e.target.value })}>
                         {row.printings.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name}, {p.set_name} ({p.set.toUpperCase()}) #{p.collector_number}, {p.prices.eur ? `${p.prices.eur} €` : "ingen pris"}{p.prices.eur_foil ? `, foil ${p.prices.eur_foil} €` : ""}
+                            {p.name}, {p.set_name} ({p.set.toUpperCase()}) #{p.collector_number}, {p.prices.eur ? `${p.prices.eur} €` : "no price"}{p.prices.eur_foil ? `, foil ${p.prices.eur_foil} €` : ""}
                           </option>
                         ))}
                       </select>
-                      {row.confidence && row.confidence !== "high" && <span className="hint">Usikker aflæsning, tjek udgaven</span>}
+                      {row.confidence && row.confidence !== "high" && <span className="hint">Uncertain reading, check the printing</span>}
                     </div>
                   )}
                   <div className="row">
-                    <select value={row.condition} disabled={locked} aria-label="Stand" onChange={(e) => patch(row.key, { condition: e.target.value as Condition })}>
+                    <select value={row.condition} disabled={locked} aria-label="Condition" onChange={(e) => patch(row.key, { condition: e.target.value as Condition })}>
                       {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <select value={row.language} disabled={locked} aria-label="Sprog" onChange={(e) => patch(row.key, { language: e.target.value })}>
+                    <select value={row.language} disabled={locked} aria-label="Language" onChange={(e) => patch(row.key, { language: e.target.value })}>
                       {LANGS.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
                     </select>
                     <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={row.foil} disabled={locked} onChange={(e) => patch(row.key, { foil: e.target.checked })} />Foil</label>
-                    <input type="number" min={1} value={row.quantity} disabled={locked} style={{ width: 70 }} aria-label="Antal"
+                    <input type="number" min={1} value={row.quantity} disabled={locked} style={{ width: 70 }} aria-label="Quantity"
                       onChange={(e) => patch(row.key, { quantity: Number(e.target.value) })} />
-                    <span>Pris <strong>{est?.price != null ? eur(est.price) : "–"}</strong>{est?.isBulk && <span className="hint"> bulk</span>}</span>
+                    <span>Price <strong>{est?.price != null ? eur(est.price) : "–"}</strong>{est?.isBulk && <span className="hint"> bulk</span>}</span>
                     <button disabled={!sel || locked} onClick={() => save(row)}>
-                      {row.state === "saving" ? "Gemmer…" : "Læg på lager"}
+                      {row.state === "saving" ? "Saving…" : "Add to inventory"}
                     </button>
                   </div>
                 </>

@@ -12,21 +12,21 @@ export default async function Purchases() {
     <>
       <div className="head">
         <div>
-          <h1>Indkøb</h1>
-          <p>Hver samling du køber, får sin pris fordelt ud på kortene. Så kender du kostprisen på hvert enkelt kort og kan se, hvornår samlingen har tjent sig hjem.</p>
+          <h1>Purchases</h1>
+          <p>Each collection you buy has its price split over its cards. That gives you the cost of every single card, and shows when the collection has paid for itself.</p>
         </div>
       </div>
 
       {lots.length > 0 && (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Indkøb</th><th>Fordeling</th><th className="num">Kort</th><th className="num">Betalt</th><th className="num">Solgt for</th><th className="num">Avance</th><th>Tjent hjem</th></tr></thead>
+            <thead><tr><th>Purchase</th><th>Split</th><th className="num">Cards</th><th className="num">Paid</th><th className="num">Sold for</th><th className="num">Margin</th><th>Paid back</th></tr></thead>
             <tbody>
               {lots.map((l) => (
                 <tr key={l.id}>
                   <td><Link href={`/purchases/${l.id}`} className="card-name">{l.name}</Link><span className="card-sub">{date(l.purchasedAt)}</span></td>
                   <td className="muted small">{METHOD_LABEL[l.method] ?? l.method}</td>
-                  <td className="num">{int(l.sold)} af {int(l.cards)} solgt</td>
+                  <td className="num">{int(l.sold)} of {int(l.cards)} sold</td>
                   <td className="num">{eur(l.totalCost)}</td>
                   <td className="num">{eur(l.revenue)}</td>
                   <td className="num">{eur(l.revenue - l.costOfSold)}</td>
@@ -39,9 +39,9 @@ export default async function Purchases() {
       )}
 
       <div className="section">
-        <h2>Registrér et indkøb</h2>
+        <h2>Add a purchase</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Det nemmeste er at oprette indkøbet direkte under <Link href="/import">Importér fra ManaBox</Link>. Opret det her, hvis du vil tilføje kortene bagefter, fx ved at scanne enkeltkort.
+          The easiest way is to create the purchase while you <Link href="/import">import from ManaBox</Link>. Create it here if you want to add the cards afterwards, for example by scanning single cards.
         </p>
         <NewPurchaseForm />
       </div>

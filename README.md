@@ -37,16 +37,21 @@ npm run dev                 # then open http://localhost:3000 — Ctrl+C to stop
 
 ## Purchases and SKUs
 
-- **Purchases (Indkøb):** when you import a collection, enter what you paid (EUR). The
+- **Purchases:** when you import a collection, enter what you paid (EUR). The
   price is spread over the cards *by market value* (a €20 card carries 100× the cost of a
   €0.20 card) or *equally*. Rounding is to the cent and always sums to the exact price.
   Adding more cards to a purchase later spreads the price again over all of them.
-  The overview shows per purchase how much has come back in sales ("tjent hjem").
+  The overview shows per purchase how much has come back in sales ("Paid back").
 - **SKU:** every physical copy gets a permanent ID like `C-000123`. It is printed on the
   placement list and written into the Comment field of the Cardmarket CSV, so each
   Cardmarket order tells you exactly which copy sold — the same ID works on any future channel.
 - **Sold price:** marking a card sold stores its sale price (the ask price unless you correct
-  it with "Ret salgspris"), which feeds margin and payback.
+  it with "Correct sale price"), which feeds margin and payback.
+- **Delete:** select cards in Inventory and press Delete to remove test cards or mistakes
+  permanently (frees the slot, re-splits the purchase cost). A purchase can be deleted on its
+  page; its cards stay in inventory without a cost.
+- **No double listing:** only cards that are *In stock* can be listed. Listed or sold cards
+  are blocked in the UI and skipped by the export.
 
 ## Daily workflow
 

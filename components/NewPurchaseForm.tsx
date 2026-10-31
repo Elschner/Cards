@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 export function MethodChoice({ value, onChange, name }: { value: string; onChange: (v: "VALUE" | "EQUAL") => void; name: string }) {
   return (
     <div className="field">
-      Fordel prisen
+      Split the price
       <div className="seg" role="radiogroup">
-        <label><input type="radio" name={name} checked={value === "VALUE"} onChange={() => onChange("VALUE")} />Efter markedsværdi</label>
-        <label><input type="radio" name={name} checked={value === "EQUAL"} onChange={() => onChange("EQUAL")} />Lige meget pr. kort</label>
+        <label><input type="radio" name={name} checked={value === "VALUE"} onChange={() => onChange("VALUE")} />By market value</label>
+        <label><input type="radio" name={name} checked={value === "EQUAL"} onChange={() => onChange("EQUAL")} />Equal per card</label>
       </div>
       <span className="hint">
         {value === "VALUE"
-          ? "Et kort til 20 € bærer 100 gange så meget af prisen som et kort til 0,20 €. Det giver retvisende avance pr. kort."
-          : "Alle kort får samme kostpris. Enkelt, men dyre kort ser for billige ud og bulk for dyrt."}
+          ? "A €20 card carries 100 times as much of the price as a €0.20 card. This gives a true margin per card."
+          : "Every card gets the same cost. Simple, but expensive cards look too cheap and bulk too expensive."}
       </span>
     </div>
   );
@@ -43,13 +43,13 @@ export default function NewPurchaseForm() {
   return (
     <div className="panel">
       <div className="grid-form" style={{ marginTop: 0 }}>
-        <label className="field">Navn<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Fx Samling fra DBA, Peter" /></label>
-        <label className="field">Betalt i alt (EUR)<input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="Inkl. fragt" /></label>
-        <label className="field">Købt den<input type="date" value={day} onChange={(e) => setDay(e.target.value)} /></label>
+        <label className="field">Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g. Collection from DBA, Peter" /></label>
+        <label className="field">Total paid (EUR)<input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="Incl. shipping" /></label>
+        <label className="field">Purchase date<input type="date" value={day} onChange={(e) => setDay(e.target.value)} /></label>
       </div>
       <div style={{ marginTop: 14 }}><MethodChoice name="new-method" value={method} onChange={setMethod} /></div>
       <div className="row" style={{ marginTop: 16 }}>
-        <button disabled={busy || !total} onClick={save}>Opret indkøb</button>
+        <button disabled={busy || !total} onClick={save}>Create purchase</button>
         {msg && <span className="err">{msg}</span>}
       </div>
     </div>

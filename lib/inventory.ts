@@ -102,3 +102,18 @@ export async function setStatus(ids: number[], status: "SOLD" | "REMOVED" | "IN_
     data: status === "IN_STOCK" ? { status, soldPrice: null, soldAt: null } : { status, boxId: null, slot: null },
   });
 }
+
+/**
+ * Permanently deletes copies (e.g. test cards or mistakes): frees their slots, drops their
+ * listing history, and re-splits the cost of any purchase they belonged to.
+ */
+export async function deleteItems(ids: number[]) {
+  const items = await prisma.inventoryItem.findMany({ where: { id: { in: ids } }, select: { id: true, purchaseId: true, status: true } });
+  const lots = [...new Set(items.map((i) => i.purchaseId).filter((p): p is number => p != null))];
+  await prisma.$transaction([
+    prisma.listing.deleteMany({ where: { itemId: { in: items.map((i) => i.id) } } }),
+    prisma.inventoryItem.deleteMany({ where: { id: { in: items.map((i) => i.id) } } }),
+  ]);
+  for (const p of lots) await reallocate(p);
+  return { deleted: items.length, wereListed: items.filter((i) => i.status === "LISTED").length };
+}

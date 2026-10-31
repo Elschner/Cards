@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { locationLabel, pickOrder } from "@/lib/core/chaos";
-import { eur, int } from "@/lib/format";
+import { cards, eur } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -17,21 +17,21 @@ export default async function PickList() {
     <>
       <div className="head">
         <div>
-          <h1>Plukliste</h1>
-          <p>Alle {int(ordered.length)} kort til salg, i den rækkefølge de står i kasserne. Find et solgt kort med dets SKU fra Cardmarket-ordren (Cmd+F).</p>
+          <h1>Pick list</h1>
+          <p>All {cards(ordered.length)} that are listed, in the order they sit in the boxes. Find a sold card by the SKU in the Cardmarket order (Cmd+F).</p>
         </div>
-        {ordered.length > 0 && <Link className="btn ghost" href="/inventory?status=LISTED">Markér solgte kort</Link>}
+        {ordered.length > 0 && <Link className="btn ghost" href="/inventory?status=LISTED">Mark cards as sold</Link>}
       </div>
       <div className="table-wrap">
         {ordered.length === 0 ? (
-          <div className="empty"><p>Ingen kort er sat til salg endnu.</p><Link className="btn" href="/inventory?status=IN_STOCK">Sæt kort til salg</Link></div>
+          <div className="empty"><p>No cards are listed yet.</p><Link className="btn" href="/inventory?status=IN_STOCK">List cards for sale</Link></div>
         ) : (
           <table>
-            <thead><tr><th>Placering</th><th>SKU</th><th>Kort</th><th>Stand</th><th className="num">Pris</th></tr></thead>
+            <thead><tr><th>Location</th><th>SKU</th><th>Card</th><th>Condition</th><th className="num">Price</th></tr></thead>
             <tbody>
               {ordered.map((i) => (
                 <tr key={i.id}>
-                  <td>{i.boxCode && i.slot ? <span className="loc">{locationLabel(i.boxCode, i.slot)}</span> : <span className="loc none">Ingen</span>}</td>
+                  <td>{i.boxCode && i.slot ? <span className="loc">{locationLabel(i.boxCode, i.slot)}</span> : <span className="loc none">None</span>}</td>
                   <td className="sku">{i.sku}</td>
                   <td><span className="card-name">{i.card.name}</span><span className="card-sub">{i.card.setName} #{i.card.collectorNumber}{i.foil ? ", foil" : ""}</span></td>
                   <td>{i.condition} {i.language.toUpperCase()}</td>

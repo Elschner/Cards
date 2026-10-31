@@ -3,11 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import Nav from "@/components/Nav";
 
-export const metadata = { title: "CardOps", description: "Lager, indkøb og salg af Magic-kort" };
+export const metadata = { title: "CardOps", description: "Inventory, purchases and sales of Magic cards" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="da">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

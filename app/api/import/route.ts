@@ -12,7 +12,7 @@ function costMode(b: Record<string, unknown>): CostMode | string {
   switch (b.costMode) {
     case "newLot": {
       const total = num(b.lotTotal);
-      if (total == null || total < 0) return "Skriv hvad du har betalt for indkøbet i EUR";
+      if (total == null || total < 0) return "Enter what you paid for the purchase in EUR";
       return {
         kind: "newLot",
         name: String(b.lotName ?? ""),
@@ -22,7 +22,7 @@ function costMode(b: Record<string, unknown>): CostMode | string {
       };
     }
     case "existingLot":
-      return Number(b.purchaseId) > 0 ? { kind: "existingLot", purchaseId: Number(b.purchaseId) } : "Vælg et indkøb";
+      return Number(b.purchaseId) > 0 ? { kind: "existingLot", purchaseId: Number(b.purchaseId) } : "Choose a purchase";
     case "file":
       return { kind: "file", usdToEur: num(b.usdToEur) ?? 0.92, fallback: num(b.flatCost) };
     default:
@@ -33,7 +33,7 @@ function costMode(b: Record<string, unknown>): CostMode | string {
 export async function POST(req: Request) {
   const b = await req.json();
   const { rows, errors } = parseManabox(String(b.csv ?? ""));
-  if (!rows.length) return NextResponse.json({ error: errors[0] ?? "Ingen kort i filen" }, { status: 400 });
+  if (!rows.length) return NextResponse.json({ error: errors[0] ?? "No cards in the file" }, { status: 400 });
   const mode = costMode(b);
   if (typeof mode === "string") return NextResponse.json({ error: mode }, { status: 400 });
   try {

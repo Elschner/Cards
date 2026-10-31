@@ -4,18 +4,18 @@ import { usePathname } from "next/navigation";
 
 // Ordered the way a stack of cards moves through the business.
 const ITEMS = [
-  { href: "/", label: "Oversigt" },
-  { href: "/purchases", label: "Indkøb" },
-  { href: "/import", label: "Importér fra ManaBox" },
-  { href: "/intake", label: "Scan enkeltkort" },
-  { href: "/inventory", label: "Lager" },
-  { href: "/pick", label: "Plukliste" },
+  { href: "/", label: "Overview" },
+  { href: "/purchases", label: "Purchases" },
+  { href: "/import", label: "Import from ManaBox" },
+  { href: "/intake", label: "Scan single cards" },
+  { href: "/inventory", label: "Inventory" },
+  { href: "/pick", label: "Pick list" },
 ];
 
 export default function Nav() {
   const path = usePathname();
   return (
-    <nav className="nav" aria-label="Hovedmenu">
+    <nav className="nav" aria-label="Main menu">
       {ITEMS.map((i) => {
         const active = i.href === "/" ? path === "/" : path.startsWith(i.href);
         return (

@@ -64,10 +64,10 @@ const truthy = (v: string | undefined) => (v ?? "").trim().toLowerCase() === "tr
 
 export function parseManabox(text: string): ParseResult {
   const table = parseCsv(text);
-  if (table.length === 0) return { rows: [], errors: ["Filen er tom"] };
+  if (table.length === 0) return { rows: [], errors: ["The file is empty"] };
   const header = table[0].map((h) => h.trim());
   const missing = REQUIRED.filter((h) => !header.includes(h));
-  if (missing.length) return { rows: [], errors: [`Ikke en ManaBox-eksport – mangler kolonner: ${missing.join(", ")}`] };
+  if (missing.length) return { rows: [], errors: [`Not a ManaBox export: missing columns ${missing.join(", ")}`] };
   const col = (r: string[], name: string) => r[header.indexOf(name)]?.trim() ?? "";
 
   const rows: ImportRow[] = [];
@@ -79,9 +79,9 @@ export function parseManabox(text: string): ParseResult {
     const qty = Number.parseInt(col(r, "Quantity"), 10);
     const scryfallId = col(r, "Scryfall ID");
     const name = col(r, "Name");
-    if (!/^[0-9a-f-]{36}$/i.test(scryfallId)) { errors.push(`Linje ${line} (${name}): mangler gyldigt Scryfall ID`); return; }
-    if (!condition) { errors.push(`Linje ${line} (${name}): ukendt stand "${condRaw}"`); return; }
-    if (!(qty > 0)) { errors.push(`Linje ${line} (${name}): ugyldigt antal`); return; }
+    if (!/^[0-9a-f-]{36}$/i.test(scryfallId)) { errors.push(`Line ${line} (${name}): missing a valid Scryfall ID`); return; }
+    if (!condition) { errors.push(`Line ${line} (${name}): unknown condition "${condRaw}"`); return; }
+    if (!(qty > 0)) { errors.push(`Line ${line} (${name}): invalid quantity`); return; }
 
     const flags: string[] = [];
     if (truthy(col(r, "Signed"))) flags.push("Signed");
@@ -101,7 +101,7 @@ export function parseManabox(text: string): ParseResult {
       purchaseCurrency: col(r, "Purchase price currency") || null,
       added: col(r, "Added") || null,
       flags,
-      skip: truthy(col(r, "Proxy")) ? "Proxy – sælges ikke" : null,
+      skip: truthy(col(r, "Proxy")) ? "Proxy, not for sale" : null,
     });
   });
   // Keep scan order: ManaBox 'Added' timestamps, oldest first (stable for equal/missing).

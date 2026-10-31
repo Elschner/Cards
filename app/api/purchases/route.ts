@@ -9,7 +9,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const b = await req.json();
   const total = Number(String(b.totalCost ?? "").replace(",", "."));
-  if (!Number.isFinite(total) || total < 0) return NextResponse.json({ error: "Skriv købsprisen i EUR" }, { status: 400 });
+  if (!Number.isFinite(total) || total < 0) return NextResponse.json({ error: "Enter the purchase price in EUR" }, { status: 400 });
   const p = await createPurchase({
     name: String(b.name ?? ""), totalCost: total, method: b.method === "EQUAL" ? "EQUAL" : "VALUE",
     purchasedAt: b.purchasedAt ? new Date(String(b.purchasedAt)) : undefined, notes: b.notes ? String(b.notes) : null,

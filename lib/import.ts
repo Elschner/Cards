@@ -51,7 +51,7 @@ export async function importRows(input: ImportRow[], mode: CostMode) {
   if (mode.kind === "newLot") purchaseId = (await createPurchase(mode)).id;
   if (mode.kind === "existingLot") {
     const p = await prisma.purchase.findUnique({ where: { id: mode.purchaseId } });
-    if (!p) throw new Error("Indkøbet findes ikke");
+    if (!p) throw new Error("Purchase not found");
     purchaseId = p.id;
   }
 
@@ -61,7 +61,7 @@ export async function importRows(input: ImportRow[], mode: CostMode) {
   for (const sc of await byIds(ids)) cards.set(sc.id, await upsertCard(sc));
   const valid = rows.filter((r) => {
     if (cards.has(r.scryfallId)) return true;
-    errors.push(`Linje ${r.line} (${r.name}): ikke fundet på Scryfall – sprunget over`);
+    errors.push(`Line ${r.line} (${r.name}): not found on Scryfall, skipped`);
     return false;
   });
 
